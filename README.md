@@ -1,8 +1,10 @@
-# Workflow Builder
+# VizFlow
 
 A powerful, customizable workflow builder for creating visual workflows with drag-and-drop nodes. Built on top of [Drawflow](https://github.com/jerosoler/Drawflow) with a modern, polished UI and 60+ SVG icons.
 
-![Workflow Builder Demo](https://via.placeholder.com/800x400?text=Workflow+Builder+Demo)
+**[Live Demo](https://viz-flow.netlify.app/)**
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/placeholder/deploy-status)](https://viz-flow.netlify.app/)
 
 ## Features
 
