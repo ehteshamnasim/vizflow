@@ -1,0 +1,43 @@
+{
+  "name": "@yourcompany/workflow-builder",
+  "version": "1.0.0",
+  "description": "A powerful, customizable workflow builder built on top of Drawflow. Create visual workflows with drag-and-drop nodes, custom connectors, and seamless save/load functionality.",
+  "main": "dist/workflow-builder.js",
+  "module": "src/index.js",
+  "types": "dist/workflow-builder.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:lib": "BUILD_MODE=lib vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "workflow",
+    "flowchart",
+    "diagram",
+    "drawflow",
+    "node-editor",
+    "visual-programming",
+    "drag-drop",
+    "no-code"
+  ],
+  "author": "Your Company",
+  "license": "MIT",
+  "dependencies": {
+    "drawflow": "^0.0.60"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourcompany/workflow-builder.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}

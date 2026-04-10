@@ -1,0 +1,1629 @@
+/**
+ * WORKFLOW BUILDER - CLEAN PROFESSIONAL DESIGN
+ */
+
+/* ============================================================================
+   CSS VARIABLES
+   ============================================================================ */
+
+.workflow-builder {
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  
+  --bg-body: #F8FAFC;
+  --bg-white: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  --bg-canvas: #F1F5F9;
+  
+  --text-dark: #1E293B;
+  --text-medium: #64748B;
+  --text-light: #94A3B8;
+  
+  --border: #E2E8F0;
+  --border-dark: #CBD5E1;
+  
+  --node-bg: #FFFFFF;
+  --node-border: #E2E8F0;
+  --node-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  
+  --connection-color: #94A3B8;
+  --dot-color: #2563EB;
+  
+  --header-height: 56px;
+  --sidebar-width: 240px;
+  --properties-width: 280px;
+  
+  --radius: 8px;
+}
+
+/* Dark Theme */
+.workflow-builder.theme-dark {
+  --bg-body: #0F172A;
+  --bg-white: #1E293B;
+  --bg-sidebar: #1E293B;
+  --bg-canvas: #0F172A;
+  
+  --text-dark: #F1F5F9;
+  --text-medium: #94A3B8;
+  --text-light: #64748B;
+  
+  --border: #334155;
+  --border-dark: #475569;
+  
+  --node-bg: #1E293B;
+  --node-border: #334155;
+  --node-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  
+  --connection-color: #64748B;
+}
+
+
+/* ============================================================================
+   BASE LAYOUT
+   ============================================================================ */
+
+.workflow-builder {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--text-dark);
+  background: var(--bg-body);
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.workflow-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.workflow-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.workflow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  padding: 0 20px;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border);
+}
+
+.workflow-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workflow-icon {
+  font-size: 20px;
+}
+
+.workflow-title h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.workflow-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--bg-white);
+  color: var(--text-dark);
+}
+
+.btn:hover {
+  background: var(--bg-body);
+  border-color: var(--border-dark);
+}
+
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-white);
+}
+
+.btn-danger {
+  color: #DC2626;
+  border-color: #FCA5A5;
+}
+
+.btn-danger:hover {
+  background: #FEF2F2;
+}
+
+.btn-small {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.btn-icon {
+  font-size: 14px;
+}
+
+
+/* ============================================================================
+   SIDEBAR - NODE PALETTE
+   ============================================================================ */
+
+.workflow-sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h2 {
+  margin: 0 0 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-hint {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.node-palette {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* Draggable Node Items */
+.node-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 6px;
+  background: var(--bg-body);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: grab;
+  transition: all 0.15s;
+}
+
+.node-item:hover {
+  border-color: var(--primary);
+  background: var(--bg-white);
+}
+
+.node-item:active,
+.node-item.dragging {
+  cursor: grabbing;
+  opacity: 0.6;
+}
+
+.node-item-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F5F5F5;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+}
+
+.node-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.node-item-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.node-item-desc {
+  display: block;
+  font-size: 11px;
+  color: var(--text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* ============================================================================
+   CANVAS AREA
+   ============================================================================ */
+
+.workflow-canvas-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border);
+}
+
+.zoom-controls,
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.zoom-level {
+  min-width: 45px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-medium);
+}
+
+.toolbar-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-body);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-medium);
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: var(--bg-white);
+  border-color: var(--border-dark);
+  color: var(--text-dark);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.workflow-canvas {
+  flex: 1;
+  overflow: hidden;
+}
+
+
+/* ============================================================================
+   PROPERTIES PANEL
+   ============================================================================ */
+
+.workflow-properties {
+  width: var(--properties-width);
+  background: var(--bg-white);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.properties-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.properties-header h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.properties-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.properties-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  text-align: center;
+  color: var(--text-light);
+}
+
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.4;
+}
+
+.properties-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.properties-node-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-body);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.properties-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F5F5F5;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+}
+
+.properties-name {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.properties-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.property-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-medium);
+  margin-bottom: 5px;
+}
+
+.property-field input,
+.property-field select,
+.property-field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-white);
+  color: var(--text-dark);
+}
+
+.property-field input:focus,
+.property-field select:focus,
+.property-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.property-field textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.properties-actions {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.no-properties {
+  font-size: 12px;
+  color: var(--text-light);
+  font-style: italic;
+}
+
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+
+.workflow-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 16px;
+  background: var(--bg-white);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.status-left {
+  display: flex;
+  gap: 16px;
+}
+
+.status-message {
+  color: var(--text-medium);
+}
+
+
+/* ============================================================================
+   NODE STYLES - Clean Professional Design
+   ============================================================================ */
+
+.workflow-node {
+  min-width: 180px;
+  max-width: 220px;
+  background: #FFFFFF;
+  border: 1px solid #D4D4D4;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+/* Icon-only nodes - compact with large icon */
+.workflow-node.icon-only {
+  min-width: 79px;
+  max-width: 79px;
+  width: 79px;
+  height: 79px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.node-icon-large {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.node-icon-large svg {
+  width: 36px;
+  height: 36px;
+}
+
+/* Icon-only nodes - adjust connection dot positions */
+.drawflow .drawflow-node .workflow-node.icon-only ~ .inputs .input,
+.drawflow .drawflow-node:has(.workflow-node.icon-only) .input {
+  left: -10px !important;
+}
+
+.drawflow .drawflow-node .workflow-node.icon-only ~ .outputs .output,
+.drawflow .drawflow-node:has(.workflow-node.icon-only) .output {
+  right: 62px !important;
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #EEEEEE;
+}
+
+.node-header:only-child {
+  border-bottom: none;
+}
+
+.node-icon {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F0F0F0;
+  border: 1px solid #D4D4D4;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #555;
+  flex-shrink: 0;
+}
+
+/* SVG icon styling */
+.node-icon svg {
+  width: 16px;
+  height: 16px;
+  color: #555;
+}
+
+.node-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
+}
+
+/* Node body with inline fields */
+/* Node body with inline fields */
+.node-body {
+  padding: 10px 14px;
+  padding-top: 0;
+}
+
+.node-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.node-field:last-child {
+  margin-bottom: 0;
+}
+
+.node-field label {
+  font-size: 11px;
+  color: #777;
+  font-weight: 500;
+}
+
+.node-field input,
+.node-field select {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  border: 1px solid #DDD;
+  border-radius: 5px;
+  background: #FAFAFA;
+  color: #333;
+  font-family: inherit;
+}
+
+.node-field textarea {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  border: 1px solid #DDD;
+  border-radius: 5px;
+  background: #FAFAFA;
+  color: #333;
+  font-family: inherit;
+  min-height: 50px;
+  resize: vertical;
+}
+
+.node-field input:focus,
+.node-field select:focus,
+.node-field textarea:focus {
+  outline: none;
+  border-color: #5A8DEE;
+  background: #FFF;
+}
+
+.node-field input[type="checkbox"] {
+  width: auto;
+}
+
+.node-field-hint {
+  font-size: 11px;
+  color: #999999;
+}
+
+
+/* ============================================================================
+   DRAWFLOW OVERRIDES - Connection dots and styling
+   ============================================================================ */
+
+.drawflow {
+  background-color: #F8FAFC !important;
+  background-image: radial-gradient(circle, #D1D5DB 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+}
+
+.drawflow .drawflow-node {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.drawflow .drawflow-node.selected .workflow-node {
+  border-color: #5A8DEE !important;
+  box-shadow: 0 0 0 2px rgba(90, 141, 238, 0.2) !important;
+}
+
+/* Input dots - LEFT side */
+.drawflow .drawflow-node .input {
+  left: -7px !important;
+  top: 0px !important;
+  width: 18px !important;
+  height: 18px !important;
+  background: #FFFFFF !important;
+  border: 2px solid #94A3B8 !important;
+  border-radius: 50% !important;
+  cursor: crosshair !important;
+}
+
+/* Output dots - RIGHT side */
+.drawflow .drawflow-node .output {
+  right: -42px !important;
+  top: 0px !important;
+  width: 18px !important;
+  height: 18px !important;
+  background: #FFFFFF !important;
+  border: 2px solid #94A3B8 !important;
+  border-radius: 50% !important;
+  cursor: crosshair !important;
+}
+
+.drawflow .drawflow-node .input:hover,
+.drawflow .drawflow-node .output:hover {
+  border-color: #5A8DEE !important;
+  background: #5A8DEE !important;
+}
+
+/* Connection lines */
+.drawflow .connection .main-path {
+  stroke: #5A8DEE !important;
+  stroke-width: 2px !important;
+  cursor: pointer !important;
+}
+
+/* Larger hit area for connections - easier to click */
+.drawflow .connection {
+  cursor: pointer !important;
+}
+
+.drawflow .connection:hover .main-path {
+  stroke: #3B7DDD !important;
+  stroke-width: 3px !important;
+}
+
+.drawflow .connection.selected .main-path {
+  stroke: #3B7DDD !important;
+  stroke-width: 3px !important;
+}
+
+/* Delete button on selected node */
+.drawflow .drawflow-delete {
+  position: absolute !important;
+  top: 5px !important;
+  right: -45px !important;
+  width: 20px !important;
+  height: 20px !important;
+  background: #1E293B !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+}
+
+.drawflow .drawflow-delete:hover {
+  background: #DC2626 !important;
+}
+
+
+/* ============================================================================
+   SCROLLBAR
+   ============================================================================ */
+
+.workflow-builder ::-webkit-scrollbar {
+  width: 6px;
+}
+
+.workflow-builder ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workflow-builder ::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: 3px;
+}
+
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 900px) {
+  .workflow-properties {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .workflow-sidebar {
+    display: none;
+  }
+}
+
+
+/* ============================================================================
+   SIDEBAR SEARCH
+   ============================================================================ */
+
+.sidebar-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-search input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-body);
+  color: var(--text-dark);
+  outline: none;
+}
+
+.sidebar-search input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.sidebar-search input::placeholder {
+  color: var(--text-light);
+}
+
+
+/* ============================================================================
+   CONTEXT MENU
+   ============================================================================ */
+
+.workflow-context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 160px;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 6px 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95);
+  transition: all 0.1s ease;
+}
+
+.workflow-context-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}
+
+.context-menu-item {
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.context-menu-item:hover {
+  background: var(--bg-body);
+}
+
+.context-menu-item.disabled {
+  color: var(--text-light);
+  pointer-events: none;
+}
+
+.context-menu-item.context-menu-danger {
+  color: #DC2626;
+}
+
+.context-menu-item.context-menu-danger:hover {
+  background: #FEF2F2;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+
+/* ============================================================================
+   SEARCH EMPTY STATE
+   ============================================================================ */
+
+.search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px;
+  text-align: center;
+  color: var(--text-light);
+}
+
+.search-empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.4;
+}
+
+.search-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+
+/* ============================================================================
+   CREATE NODE BUTTON
+   ============================================================================ */
+
+.sidebar-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.btn-create-node {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1;
+}
+
+.btn-create-node:hover {
+  background: var(--primary-hover);
+}
+
+
+/* ============================================================================
+   MODAL DIALOG
+   ============================================================================ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  background: var(--bg-white);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow: hidden;
+  transform: scale(0.9) translateY(20px);
+  transition: transform 0.2s ease;
+}
+
+.modal-overlay.visible .modal {
+  transform: scale(1) translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.modal-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.modal-close:hover {
+  background: var(--bg-body);
+  color: var(--text-dark);
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modal-field {
+  margin-bottom: 16px;
+}
+
+.modal-field:last-child {
+  margin-bottom: 0;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-medium);
+  margin-bottom: 6px;
+}
+
+.modal-field input,
+.modal-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-white);
+  color: var(--text-dark);
+  font-family: inherit;
+}
+
+.modal-field input:focus,
+.modal-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.modal-field input[type="number"] {
+  width: 100%;
+}
+
+.modal-field textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.modal-row {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-row .modal-field {
+  flex: 1;
+}
+
+.modal-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-body);
+}
+
+
+/* ============================================================================
+   VIEW MODE STYLES
+   ============================================================================ */
+
+/* View mode: simplified, cleaner appearance */
+.workflow-builder.mode-view {
+  --header-height: 48px;
+}
+
+/* View mode header - minimal */
+.workflow-builder.mode-view .view-header {
+  padding: 0 16px;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border);
+}
+
+.workflow-builder.mode-view .view-header h1 {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-medium);
+}
+
+.workflow-builder.mode-view .view-header .workflow-actions {
+  gap: 4px;
+}
+
+.workflow-builder.mode-view .view-header .btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  min-width: 32px;
+}
+
+/* View mode canvas - full width */
+.workflow-builder.mode-view .view-main {
+  display: flex;
+}
+
+.workflow-builder.mode-view .view-canvas-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-builder.mode-view .workflow-canvas {
+  flex: 1;
+}
+
+/* View mode: hide all editing UI elements via Drawflow */
+.workflow-builder.mode-view .drawflow-delete {
+  display: none !important;
+}
+
+.workflow-builder.mode-view .drawflow-node .input,
+.workflow-builder.mode-view .drawflow-node .output {
+  pointer-events: none;
+}
+
+/* View mode: disable node fields */
+.workflow-builder.mode-view .node-field input,
+.workflow-builder.mode-view .node-field select,
+.workflow-builder.mode-view .node-field textarea {
+  pointer-events: none;
+  background: var(--bg-body);
+  cursor: default;
+}
+
+/* View mode: cleaner node styling */
+.workflow-builder.mode-view .workflow-node {
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.workflow-builder.mode-view .drawflow-node.selected .workflow-node {
+  border-color: var(--border);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* View mode footer */
+.workflow-builder.mode-view .workflow-footer {
+  background: var(--bg-body);
+  border-top: 1px solid var(--border);
+}
+
+.workflow-builder.mode-view .workflow-footer .status-message {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+
+/* ============================================================================
+   VALIDATION MODAL
+   ============================================================================ */
+
+.validation-modal {
+  max-width: 480px;
+}
+
+.validation-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.validation-summary.valid {
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+}
+
+.validation-summary.warning {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+}
+
+.validation-summary.error {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+}
+
+.validation-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.validation-summary.valid .validation-icon {
+  background: #10B981;
+  color: white;
+}
+
+.validation-summary.warning .validation-icon {
+  background: #F59E0B;
+  color: white;
+}
+
+.validation-summary.error .validation-icon {
+  background: #EF4444;
+  color: white;
+}
+
+.validation-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.validation-issues {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.validation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+.validation-item.error {
+  background: #FEF2F2;
+}
+
+.validation-item.warning {
+  background: #FFFBEB;
+}
+
+.validation-item.success {
+  background: #ECFDF5;
+}
+
+.validation-item .v-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.validation-item.error .v-icon {
+  background: #EF4444;
+  color: white;
+}
+
+.validation-item.warning .v-icon {
+  background: #F59E0B;
+  color: white;
+}
+
+.validation-item.success .v-icon {
+  background: #10B981;
+  color: white;
+}
+
+/* Validation highlight on nodes */
+.workflow-node.validation-highlight {
+  animation: validation-pulse 0.5s ease-in-out 3;
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important;
+}
+
+@keyframes validation-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.2);
+  }
+}
+
+/* ============================================================================
+   BACKGROUND PATTERNS
+   ============================================================================ */
+
+/* Dots Pattern */
+.workflow-builder.bg-dots .workflow-canvas {
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Lines Pattern */
+.workflow-builder.bg-lines .workflow-canvas {
+  background-image: 
+    linear-gradient(to right, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Grid Pattern */
+.workflow-builder.bg-grid .workflow-canvas {
+  background-image: 
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* No Pattern */
+.workflow-builder.bg-none .workflow-canvas {
+  background-image: none;
+}
+
+/* Dark theme background adjustments */
+.workflow-builder.theme-dark.bg-dots .workflow-canvas {
+  background-image: radial-gradient(circle, #334155 1px, transparent 1px);
+}
+
+.workflow-builder.theme-dark.bg-lines .workflow-canvas {
+  background-image: linear-gradient(to right, #334155 1px, transparent 1px);
+}
+
+.workflow-builder.theme-dark.bg-grid .workflow-canvas {
+  background-image: 
+    linear-gradient(to right, #334155 1px, transparent 1px),
+    linear-gradient(to bottom, #334155 1px, transparent 1px);
+}
+
+/* ============================================================================
+   MINIMAP
+   ============================================================================ */
+
+.workflow-minimap {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 180px;
+  height: 120px;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 100;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.workflow-minimap:hover {
+  opacity: 1;
+}
+
+.minimap-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.minimap-content .drawflow-node {
+  position: absolute;
+  background: var(--primary);
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+.minimap-viewport {
+  position: absolute;
+  border: 2px solid var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 2px;
+  cursor: move;
+  z-index: 10;
+}
+
+/* Hide minimap when option is false (via JS) */
+.workflow-minimap.hidden {
+  display: none;
+}
+
+/* ============================================================================
+   EDGE/CONNECTION STYLES
+   ============================================================================ */
+
+/* Step edge style */
+.workflow-builder .drawflow .connection.step-edge .main-path {
+  stroke-dasharray: none;
+}
+
+/* Animated edges */
+.workflow-builder .drawflow .connection.animated .main-path {
+  stroke-dasharray: 5;
+  animation: dash-animation 0.5s linear infinite;
+}
+
+@keyframes dash-animation {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* ============================================================================
+   COPY/PASTE VISUAL FEEDBACK
+   ============================================================================ */
+
+.workflow-node.copied {
+  animation: copy-flash 0.3s ease-out;
+}
+
+@keyframes copy-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+.workflow-node.pasted {
+  animation: paste-appear 0.3s ease-out;
+}
+
+@keyframes paste-appear {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   TOGGLE CONTROLS
+   ============================================================================ */
+
+.toggle-controls {
+  display: flex;
+  gap: 4px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.toolbar-btn.toggle-btn {
+  position: relative;
+}
+
+.toolbar-btn.toggle-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.toolbar-btn.toggle-btn.active:hover {
+  background: var(--primary-hover);
+}
+
+/* ============================================================================
+   MULTI-SELECT
+   ============================================================================ */
+
+.workflow-canvas {
+  position: relative;
+}
+
+.selection-box {
+  position: absolute;
+  border: 2px dashed var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  pointer-events: none;
+  z-index: 1000;
+  display: none;
+  border-radius: 4px;
+}
+
+.selection-box.active {
+  display: block;
+}
+
+.workflow-node.multi-selected {
+  box-shadow: 0 0 0 3px var(--primary) !important;
+  z-index: 10;
+}
+
+.workflow-node.multi-selected .workflow-node {
+  border-color: var(--primary) !important;
+}
+
+/* ============================================================================
+   ANIMATED EDGES (Global Toggle)
+   ============================================================================ */
+
+#drawflow-canvas.animated-edges .connection .main-path {
+  stroke-dasharray: 8 4;
+  animation: flow-animation 1s linear infinite;
+}
+
+@keyframes flow-animation {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ============================================================================
+   ARROW MARKERS
+   ============================================================================ */
+
+.drawflow .connection .main-path {
+  marker-end: url(#arrowhead);
+}
+
+.drawflow .connection:hover .main-path {
+  marker-end: url(#arrowhead-hover);
+}
+
+/* ============================================================================
+   MINIMAP HEADER
+   ============================================================================ */
+
+.minimap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-medium);
+}
+
+.minimap-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-light);
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.minimap-close:hover {
+  color: var(--text-dark);
+}
+
+/* Adjust minimap content for header */
+.workflow-minimap {
+  padding-top: 0;
+}
+
+.workflow-minimap .minimap-content {
+  height: calc(100% - 24px);
+}
+
+/* ============================================================================
+   SNAP TO GRID INDICATOR
+   ============================================================================ */
+
+.workflow-builder.snap-enabled .workflow-canvas {
+  background-image: 
+    linear-gradient(to right, rgba(37, 99, 235, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ============================================================================
+   EDGE LABELS
+   ============================================================================ */
+
+.edge-label {
+  position: absolute;
+  background: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-medium);
+  border: 1px solid var(--border);
+  pointer-events: none;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+}
+
+.edge-label.yes {
+  color: #22C55E;
+  border-color: #22C55E;
+}
+
+.edge-label.no {
+  color: #EF4444;
+  border-color: #EF4444;
+}

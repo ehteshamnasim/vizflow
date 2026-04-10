@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow Builder</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    #app {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  
+  <script type="module">
+    import { WorkflowBuilder } from './src/index.js';
+    
+    // Initialize workflow builder
+    const workflow = new WorkflowBuilder('#app', {
+      theme: 'light',
+      nodes: [
+        // Core workflow nodes
+        'trigger', 'action', 'condition', 'loop', 'delay', 'end',
+        // Database nodes
+        'database', 'mongodb', 'redis',
+        // Cloud/AWS nodes
+        'aws', 'lambda', 's3',
+        // DevOps nodes
+        'docker', 'kubernetes', 'github',
+        // Code nodes
+        'code', 'nodejs', 'python',
+        // API/HTTP nodes
+        'http', 'webhook', 'api',
+        // Communication nodes
+        'email', 'slack',
+        // Data transformation
+        'transform', 'filter', 'merge', 'json',
+        // Infrastructure
+        'server', 'cloud',
+        // Utility nodes
+        'note', 'file', 'settings', 'schedule',
+        // Simple shapes (flowchart)
+        'start', 'stop', 'process', 'decision', 'data', 'document', 'connector', 'subprocess',
+        // Visual/Icon nodes
+        'image', 'svg', 'icon',
+        // Shape nodes
+        'circle', 'square', 'diamond', 'hexagon', 'triangle', 'star', 'heart',
+        // Status/Indicator nodes
+        'success', 'error', 'warning', 'info', 'notification',
+        // People nodes
+        'user', 'users',
+        // Action nodes
+        'download', 'upload', 'search', 'link', 'folder', 'trash', 'edit', 'copy', 'refresh',
+        // Arrow nodes
+        'arrowRight', 'arrowLeft', 'arrowUp', 'arrowDown',
+        // Misc icon nodes
+        'zap', 'lock', 'unlock', 'key', 'globe', 'home', 'bookmark', 'flag', 'tag', 'layers', 'box', 'cpu', 'activity', 'pieChart', 'barChart'
+      ],
+      onChange: (data) => console.log('Workflow changed:', data),
+      onSave: (data) => console.log('Workflow saved:', data)
+    });
+    
+    // Create example workflow
+    setTimeout(() => {
+      const triggerId = workflow.addNode('trigger', 100, 140);
+      const conditionId = workflow.addNode('condition', 380, 140);
+      const emailId = workflow.addNode('email', 660, 80);
+      const delayId = workflow.addNode('delay', 660, 250);
+      
+      // Connect nodes
+      workflow.connect(triggerId, conditionId);
+      workflow.connect(conditionId, emailId);
+      workflow.connect(conditionId, delayId);
+      
+      console.log('Workflow Builder ready!');
+      console.log('Try: workflow.setMode("view") to switch to view mode');
+      console.log('Try: workflow.setMode("edit") to switch back to edit mode');
+    }, 300);
+    
+    window.workflow = workflow;
+  </script>
+</body>
+</html>
