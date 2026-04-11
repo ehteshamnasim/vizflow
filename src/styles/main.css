@@ -713,44 +713,33 @@
 .drawflow .connection .main-path {
   stroke: #5A8DEE !important;
   stroke-width: 2px !important;
-  cursor: pointer !important;
-}
-
-/* Larger hit area for connections - easier to click */
-.drawflow .connection {
-  cursor: pointer !important;
+  cursor: pointer;
+  pointer-events: stroke;
 }
 
 .drawflow .connection:hover .main-path {
   stroke: #3B7DDD !important;
-  stroke-width: 3px !important;
 }
 
 .drawflow .connection.selected .main-path {
   stroke: #3B7DDD !important;
-  stroke-width: 3px !important;
 }
 
-/* Delete button on selected node */
+/* SVG connection container - only path should be clickable */
+.drawflow svg.connection {
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Make only the path line clickable, not the entire SVG bounding box */
+.drawflow svg.connection .main-path {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+/* Hide delete button - we use context menu instead */
 .drawflow .drawflow-delete {
-  position: absolute !important;
-  top: 5px !important;
-  right: -45px !important;
-  width: 20px !important;
-  height: 20px !important;
-  background: #1E293B !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: white !important;
-  font-size: 12px !important;
-  cursor: pointer !important;
-  z-index: 10 !important;
-}
-
-.drawflow .drawflow-delete:hover {
-  background: #DC2626 !important;
+  display: none !important;
 }
 
 
@@ -1122,6 +1111,237 @@
 .comment-node-wrapper .inputs,
 .comment-node-wrapper .outputs {
   display: none !important;
+}
+
+
+/* ============================================================================
+   NODE GROUPS
+   ============================================================================ */
+
+.group-box {
+  position: absolute;
+  border: 2px dashed var(--group-color, #3B82F6);
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.05);
+  pointer-events: none;
+  z-index: 0;
+  transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+}
+
+.group-box:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.group-box.dragging {
+  border-style: solid;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.group-header {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.group-header:active {
+  cursor: grabbing;
+}
+
+.group-ungroup-btn {
+  background: transparent;
+  border: none;
+  color: var(--group-color, #3B82F6);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s, background 0.15s;
+  line-height: 1;
+}
+
+.group-ungroup-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.theme-dark .group-ungroup-btn:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Collapse button */
+.group-collapse-btn {
+  background: transparent;
+  border: none;
+  color: var(--group-color, #3B82F6);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s, background 0.15s;
+  line-height: 1;
+}
+
+.group-collapse-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.theme-dark .group-collapse-btn:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.group-label {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--group-color, #3B82F6);
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  padding: 2px 4px;
+  border-radius: 4px;
+  min-width: 60px;
+}
+
+.group-label:hover,
+.group-label:focus {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.theme-dark .group-label:hover,
+.theme-dark .group-label:focus {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Grouped node indicator */
+.drawflow-node.grouped {
+  box-shadow: 0 0 0 2px var(--group-color, #3B82F6), 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-dark .group-box {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.theme-dark .group-box:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+/* ============================================================================
+   COLLAPSED GROUP NODE
+   ============================================================================ */
+
+.drawflow-node.collapsed-group-node {
+  min-width: 180px;
+  padding: 0;
+  border-radius: 10px;
+  overflow: visible !important;
+  background: var(--node-bg);
+  border: 2px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.drawflow-node.collapsed-group-node .drawflow_content_node {
+  padding: 0;
+  overflow: visible !important;
+}
+
+/* Position connectors at edges of collapsed node */
+.drawflow-node.collapsed-group-node > .inputs {
+  position: absolute !important;
+  left: -9px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.drawflow-node.collapsed-group-node > .outputs {
+  position: absolute !important;
+  right: -9px !important;
+  left: auto !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.drawflow-node.collapsed-group-node > .inputs .input,
+.drawflow-node.collapsed-group-node > .outputs .output {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  margin: 0 !important;
+}
+
+.collapsed-group-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02));
+  border-radius: 8px;
+}
+
+.collapsed-group-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.collapsed-group-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.collapsed-group-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collapsed-group-count {
+  font-size: 11px;
+  color: var(--text-medium);
+  margin-top: 2px;
+}
+
+.collapsed-group-expand {
+  background: #2563EB;
+  border: none;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.collapsed-group-expand:hover {
+  background: #1D4ED8;
+  transform: scale(1.1);
+}
+
+.theme-dark .collapsed-group-content {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
 }
 
 
@@ -1742,16 +1962,16 @@
    MULTI-SELECT
    ============================================================================ */
 
-.workflow-canvas {
+.workflow-canvas-container {
   position: relative;
 }
 
 .selection-box {
   position: absolute;
   border: 2px dashed var(--primary);
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(37, 99, 235, 0.15);
   pointer-events: none;
-  z-index: 1000;
+  z-index: 9999;
   display: none;
   border-radius: 4px;
 }

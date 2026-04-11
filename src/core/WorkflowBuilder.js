@@ -113,6 +113,13 @@ export class WorkflowBuilder {
     this.selectionStart = { x: 0, y: 0 };
     
     /**
+     * Node groups state
+     */
+    this.groups = new Map();  // groupId -> { nodeIds: Set, label: string, color: string, collapsed: boolean, savedConnections: [] }
+    this.nextGroupId = 1;
+    this.collapsedGroupNodes = new Map(); // groupId -> nodeId of collapsed placeholder
+    
+    /**
      * Search filter state
      */
     this.searchFilter = '';
@@ -449,9 +456,9 @@ export class WorkflowBuilder {
                   </marker>
                 </defs>
               </svg>
-              <!-- Selection Box for Multi-select (inside canvas for positioning) -->
-              <div class="selection-box" id="selection-box"></div>
             </div>
+            <!-- Selection Box for Multi-select (outside canvas precanvas) -->
+            <div class="selection-box" id="selection-box"></div>
             
             <!-- Minimap for navigation -->
             <div class="workflow-minimap" id="workflow-minimap">
@@ -1126,10 +1133,23 @@ export class WorkflowBuilder {
       }
       
       /**
-       * Ctrl+A: Select all (prevent default, we don't support multi-select yet)
+       * Ctrl+A: Select all nodes
        */
       if (isCtrl && event.key === 'a' && !isTyping) {
         event.preventDefault();
+        this.selectAllNodes();
+      }
+      
+      /**
+       * Ctrl+G: Toggle group (group if not grouped, ungroup if grouped)
+       */
+      if (isCtrl && event.key === 'g' && !isTyping) {
+        event.preventDefault();
+        if (event.shiftKey) {
+          this.collapseSelectedGroup();
+        } else {
+          this.toggleGroup();
+        }
       }
       
       /**
@@ -1137,6 +1157,7 @@ export class WorkflowBuilder {
        */
       if (event.key === 'Escape') {
         this.deselectAll();
+        this.clearSelection();
         this._hideContextMenu();
       }
       
@@ -1219,10 +1240,22 @@ export class WorkflowBuilder {
     });
 
     /**
-     * Node selected event
+     * Node selected event - sync single selection to selectedNodes
+     * Note: Clicking nodes accumulates selection. Click canvas to clear.
      */
     this.drawflow.on('nodeSelected', (nodeId) => {
       this._showProperties(nodeId);
+      
+      // Add this node to selectedNodes (accumulative selection)
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl && !this.selectedNodes.has(nodeId)) {
+        nodeEl.classList.add('multi-selected');
+        this.selectedNodes.add(nodeId);
+        
+        if (this.selectedNodes.size > 1) {
+          this._setStatus(`${this.selectedNodes.size} nodes selected`);
+        }
+      }
     });
 
     /**
@@ -1770,6 +1803,11 @@ export class WorkflowBuilder {
    */
   clear() {
     if (confirm('Are you sure you want to clear the entire workflow?')) {
+      // Clear all groups first
+      this.groups.forEach((group, groupId) => this._dissolveGroup(groupId));
+      this.groups.clear();
+      this.nextGroupId = 1;
+      
       this.drawflow.clear();
       this._updateStats();
       this._saveToHistory();
@@ -1785,16 +1823,11 @@ export class WorkflowBuilder {
    * --------------------------------------------------------------------------
    * 
    * Deletes the currently selected node.
+   * Note: The main deleteSelected() is defined with multi-select support below.
    * 
    * --------------------------------------------------------------------------
    */
-  deleteSelected() {
-    const selectedNode = this.container.querySelector('.drawflow-node.selected');
-    if (selectedNode) {
-      const nodeId = selectedNode.id.replace('node-', '');
-      this.drawflow.removeNodeId(`node-${nodeId}`);
-    }
-  }
+  // deleteSelected is defined below with multi-select support
 
 
   /**
@@ -1811,48 +1844,18 @@ export class WorkflowBuilder {
   export() {
     const data = this.drawflow.export();
     
-    // Debug: Log node colors in export data
-    const nodes = data.drawflow?.Home?.data || {};
-    Object.entries(nodes).forEach(([nodeId, nodeData]) => {
-      if (nodeData.data?._nodeColor) {
-        console.log('[VizFlow Export] Node', nodeId, 'has color:', nodeData.data._nodeColor);
-      }
-    });
-    
-    // Save connection colors
-    const connectionColors = {};
-    const connections = this.container.querySelectorAll('.connection .main-path[data-custom-color]');
-    connections.forEach(path => {
-      const connection = path.closest('.connection');
-      if (connection) {
-        const classString = connection.getAttribute('class') || '';
-        const classes = classString.split(' ');
-        
-        let inputNodeId, outputNodeId, inputClass, outputClass;
-        classes.forEach(cls => {
-          if (cls.startsWith('node_in_node-')) {
-            inputNodeId = cls.replace('node_in_node-', '');
-          }
-          if (cls.startsWith('node_out_node-')) {
-            outputNodeId = cls.replace('node_out_node-', '');
-          }
-          if (cls.startsWith('output_')) {
-            outputClass = cls;
-          }
-          if (cls.startsWith('input_')) {
-            inputClass = cls;
-          }
+    // Add groups data
+    if (this.groups && this.groups.size > 0) {
+      data._groups = [];
+      this.groups.forEach((group, groupId) => {
+        data._groups.push({
+          id: groupId,
+          nodeIds: Array.from(group.nodeIds),
+          label: group.label,
+          color: group.color
         });
-        
-        if (outputNodeId && inputNodeId && outputClass && inputClass) {
-          const key = `${outputNodeId}|${inputNodeId}|${outputClass}|${inputClass}`;
-          connectionColors[key] = path.dataset.customColor;
-        }
-      }
-    });
-    
-    if (Object.keys(connectionColors).length > 0) {
-      data._connectionColors = connectionColors;
+      });
+      data._nextGroupId = this.nextGroupId;
     }
     
     return data;
@@ -1871,16 +1874,9 @@ export class WorkflowBuilder {
    * --------------------------------------------------------------------------
    */
   import(data) {
-    console.log('[VizFlow Import] Importing workflow data');
-    console.log('[VizFlow Import] Has _connectionColors:', !!data._connectionColors);
-    
-    // Log node colors in the data being imported
-    const nodes = data.drawflow?.Home?.data || {};
-    Object.entries(nodes).forEach(([nodeId, nodeData]) => {
-      if (nodeData.data?._nodeColor) {
-        console.log('[VizFlow Import] Node', nodeId, 'has color:', nodeData.data._nodeColor);
-      }
-    });
+    // Clear existing groups
+    this.groups.forEach((group, groupId) => this._dissolveGroup(groupId));
+    this.groups.clear();
     
     this.drawflow.import(data);
     this._updateStats();
@@ -1888,6 +1884,9 @@ export class WorkflowBuilder {
     
     // Restore visual styles after import
     this._restoreImportedStyles(data);
+    
+    // Restore groups after import
+    this._restoreImportedGroups(data);
     
     this._setStatus('Workflow imported');
   }
@@ -1897,31 +1896,21 @@ export class WorkflowBuilder {
    */
   _restoreImportedStyles(data) {
     if (!data?.drawflow?.Home?.data) {
-      console.log('[VizFlow] No data to restore styles from');
       return;
     }
     
     const nodes = data.drawflow.Home.data;
-    const connectionColors = data._connectionColors;
     
-    console.log('[VizFlow] Restoring styles for', Object.keys(nodes).length, 'nodes');
-    if (connectionColors) {
-      console.log('[VizFlow] Restoring', Object.keys(connectionColors).length, 'connection colors');
-    }
-    
-    // Wait for DOM to fully update (increased timeout)
+    // Wait for DOM to fully update
     setTimeout(() => {
       Object.entries(nodes).forEach(([nodeId, nodeData]) => {
         const nodeEl = this.container.querySelector(`#node-${nodeId}`);
         
         // Restore node colors
         if (nodeData.data?._nodeColor) {
-          console.log('[VizFlow] Restoring color for node', nodeId, ':', nodeData.data._nodeColor);
           if (nodeEl) {
             nodeEl.style.setProperty('--node-color', nodeData.data._nodeColor);
             nodeEl.classList.add('custom-color');
-          } else {
-            console.warn('[VizFlow] Node element not found:', nodeId);
           }
         }
         
@@ -1930,11 +1919,6 @@ export class WorkflowBuilder {
           this._setupRestoredComment(nodeId, nodeData.data._text);
         }
       });
-      
-      // Restore connection colors
-      if (connectionColors) {
-        this._restoreConnectionColors(connectionColors);
-      }
     }, 100);
   }
 
@@ -1981,24 +1965,60 @@ export class WorkflowBuilder {
   }
 
   /**
-   * Restore connection colors from saved data
+   * Restore groups after importing workflow data
    */
-  _restoreConnectionColors(colorData) {
-    Object.entries(colorData).forEach(([connectionKey, color]) => {
-      const [outputNode, inputNode, outputClass, inputClass] = connectionKey.split('|');
-      
-      // Find the connection SVG element
-      const selector = `.connection.node_out_node-${outputNode}.node_in_node-${inputNode}.${outputClass}.${inputClass}`;
-      const connection = this.container.querySelector(selector);
-      
-      if (connection) {
-        const path = connection.querySelector('.main-path');
-        if (path) {
-          path.style.stroke = color;
-          path.dataset.customColor = color;
+  _restoreImportedGroups(data) {
+    if (!data?._groups || !Array.isArray(data._groups)) {
+      return;
+    }
+    
+    // Set next group ID
+    if (data._nextGroupId) {
+      this.nextGroupId = data._nextGroupId;
+    }
+    
+    // Wait for DOM to fully update
+    setTimeout(() => {
+      data._groups.forEach(groupData => {
+        const nodeIds = new Set(groupData.nodeIds.map(id => String(id)));
+        
+        // Verify nodes exist
+        const validNodeIds = new Set();
+        nodeIds.forEach(nodeId => {
+          const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+          if (nodeEl) {
+            validNodeIds.add(nodeId);
+          }
+        });
+        
+        if (validNodeIds.size >= 2) {
+          const groupId = groupData.id;
+          
+          this.groups.set(groupId, {
+            nodeIds: validNodeIds,
+            label: groupData.label || `Group ${groupId}`,
+            color: groupData.color || this._getGroupColor(groupId)
+          });
+          
+          // Mark nodes as grouped
+          validNodeIds.forEach(nodeId => {
+            const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+            if (nodeEl) {
+              nodeEl.dataset.groupId = groupId;
+              nodeEl.classList.add('grouped');
+            }
+          });
+          
+          // Create visual group box
+          this._createGroupBox(groupId);
+          
+          // Ensure nextGroupId is higher than any restored group
+          if (groupId >= this.nextGroupId) {
+            this.nextGroupId = groupId + 1;
+          }
         }
-      }
-    });
+      });
+    }, 150);
   }
 
 
@@ -2324,13 +2344,38 @@ export class WorkflowBuilder {
   }
 
   /**
-   * Clear multi-selection
+   * Select all nodes on canvas
+   */
+  selectAllNodes() {
+    this.clearSelection();
+    
+    const nodes = this.container.querySelectorAll('.drawflow-node');
+    nodes.forEach(node => {
+      // Skip collapsed-hidden nodes
+      if (node.classList.contains('collapsed-hidden')) return;
+      
+      const nodeId = node.id.replace('node-', '');
+      node.classList.add('multi-selected');
+      this.selectedNodes.add(nodeId);
+    });
+    
+    this._setStatus(`${this.selectedNodes.size} nodes selected`);
+  }
+
+  /**
+   * Clear multi-selection and Drawflow selection
    */
   clearSelection() {
+    // Clear our multi-selected nodes
     this.container.querySelectorAll('.multi-selected').forEach(node => {
       node.classList.remove('multi-selected');
     });
     this.selectedNodes.clear();
+    
+    // Also clear Drawflow's native selection
+    this.container.querySelectorAll('.drawflow-node.selected').forEach(node => {
+      node.classList.remove('selected');
+    });
   }
 
   /**
@@ -2338,14 +2383,13 @@ export class WorkflowBuilder {
    */
   deleteSelected() {
     // First try multi-selected nodes
-    if (this.selectedNodes.size > 0) {
+    if (this.selectedNodes && this.selectedNodes.size > 0) {
       const count = this.selectedNodes.size;
       this.selectedNodes.forEach(id => {
         this.drawflow.removeNodeId(`node-${id}`);
       });
       this.clearSelection();
       this._setStatus(`${count} nodes deleted`);
-      this._pushHistory();
       return;
     }
     
@@ -2353,9 +2397,8 @@ export class WorkflowBuilder {
     const selectedNode = this.container.querySelector('.drawflow-node.selected');
     if (selectedNode) {
       const nodeId = selectedNode.id.replace('node-', '');
-      this.drawflow.removeNodeId(selectedNode.id);
+      this.drawflow.removeNodeId(`node-${nodeId}`);
       this._setStatus('Node deleted');
-      this._pushHistory();
     }
   }
 
@@ -2790,27 +2833,26 @@ export class WorkflowBuilder {
       </div>
       <div class="context-menu-item" data-action="add-comment">Add Comment</div>
       <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="toggle-group">Group / Ungroup</div>
+      <div class="context-menu-item" data-action="collapse-group">Collapse Group</div>
+      <div class="context-menu-divider"></div>
       <div class="context-menu-item" data-action="disconnect">Disconnect All</div>
       <div class="context-menu-item context-menu-danger" data-action="delete">Delete</div>
       <div class="context-menu-item context-menu-danger" data-action="delete-connection" style="display:none;">Delete Connection</div>
-      <div class="context-menu-item context-menu-submenu" data-submenu="conn-color" style="display:none;">
-        Connection Color
-        <span class="submenu-arrow">▶</span>
-        <div class="context-submenu" id="conn-color-submenu">
-          <div class="color-picker-grid">${colorSwatches}</div>
-        </div>
-      </div>
     `;
     this.container.appendChild(menu);
     this.contextMenu = menu;
-    this.selectedConnection = null;
     this.contextMenuNodeId = null;  // Track which node the context menu is for
     this.contextMenuPosition = { x: 0, y: 0 };  // Track where menu was opened
+    this.selectedConnection = null;  // Track selected connection for deletion
 
     // Handle right-click on canvas
     const canvas = this.container.querySelector('#drawflow-canvas');
     canvas.addEventListener('contextmenu', (event) => {
       event.preventDefault();
+      
+      // ALWAYS reset connection state at start of every context menu
+      this.selectedConnection = null;
       
       // Store position for adding comments
       const canvasRect = canvas.getBoundingClientRect();
@@ -2820,10 +2862,16 @@ export class WorkflowBuilder {
       };
       
       // Check if right-clicking on a connection
-      const connection = event.target.closest('.connection');
-      if (connection) {
-        // Store the connection info for deletion
-        const connectionClass = connection.classList[1]; // e.g., "node_in_node-2"
+      // Only detect as connection if clicking on the actual path line, not SVG container
+      let connection = null;
+      const target = event.target;
+      
+      // Check if we clicked directly on the path (main-path) inside connection SVG
+      if (target.tagName === 'path' && target.classList.contains('main-path')) {
+        connection = target.closest('.connection');
+      }
+      
+      if (connection && connection.classList.contains('connection')) {
         this.selectedConnection = connection;
         this.contextMenuNodeId = null;
         this._showContextMenu(event.clientX, event.clientY, false, true);
@@ -2833,10 +2881,27 @@ export class WorkflowBuilder {
       // Check if right-clicking on a node
       const node = event.target.closest('.drawflow-node');
       if (node) {
-        // Select the node and store its ID
+        const nodeId = node.id.replace('node-', '');
+        
+        // If this node is NOT already in our selectedNodes, add it
+        // This ensures grouping operations work with right-clicked nodes
+        if (!this.selectedNodes.has(nodeId)) {
+          // If we have multi-selected nodes, add this node to the selection
+          // Otherwise, start a new selection with just this node
+          if (this.selectedNodes.size === 0) {
+            // No multi-selection, just select this node
+            node.classList.add('multi-selected');
+          } else {
+            // Add to existing multi-selection
+            node.classList.add('multi-selected');
+          }
+          this.selectedNodes.add(nodeId);
+        }
+        
+        // Also set Drawflow selection
         node.classList.add('selected');
-        this.contextMenuNodeId = node.id.replace('node-', '');
-        this._showProperties(this.contextMenuNodeId);
+        this.contextMenuNodeId = nodeId;
+        this._showProperties(nodeId);
       } else {
         this.contextMenuNodeId = null;
       }
@@ -2875,18 +2940,6 @@ export class WorkflowBuilder {
         this._hideContextMenu();
       });
     }
-    
-    // Handle color swatch clicks for connections
-    menu.querySelectorAll('#conn-color-submenu .color-swatch').forEach(swatch => {
-      swatch.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const color = swatch.dataset.color;
-        if (this.selectedConnection) {
-          this.setConnectionColor(this.selectedConnection, color);
-        }
-        this._hideContextMenu();
-      });
-    });
 
     // Handle context menu item clicks
     menu.addEventListener('click', (event) => {
@@ -2913,6 +2966,12 @@ export class WorkflowBuilder {
           break;
         case 'add-comment':
           this.addComment(this.contextMenuPosition.x, this.contextMenuPosition.y);
+          break;
+        case 'toggle-group':
+          this.toggleGroup();
+          break;
+        case 'collapse-group':
+          this.collapseSelectedGroup();
           break;
         case 'disconnect':
           this.disconnectSelected();
@@ -2983,42 +3042,62 @@ export class WorkflowBuilder {
       deleteConnItem.style.display = isConnection ? 'block' : 'none';
     }
     
-    // Show/hide connection color submenu
-    const connColorSubmenu = this.contextMenu.querySelector('[data-submenu="conn-color"]');
-    if (connColorSubmenu) {
-      connColorSubmenu.style.display = isConnection ? 'block' : 'none';
-    }
-    
     // Show/hide node color submenu
     const nodeColorSubmenu = this.contextMenu.querySelector('[data-submenu="node-color"]');
     if (nodeColorSubmenu) {
-      nodeColorSubmenu.style.display = hasNode ? 'block' : 'none';
-      nodeColorSubmenu.classList.toggle('disabled', !hasNode);
+      nodeColorSubmenu.style.display = (hasNode && !isConnection) ? 'block' : 'none';
     }
     
-    // Show add-comment always (on canvas or node)
-    const addCommentItem = this.contextMenu.querySelector('[data-action="add-comment"]');
-    if (addCommentItem) {
-      addCommentItem.style.display = isConnection ? 'none' : 'block';
-    }
+    // Check if selection includes grouped nodes or multiple selected
+    const hasGroupedNodes = this._selectionHasGroupedNodes();
+    // Need 2+ nodes to group; single selected node doesn't count
+    const hasMultipleSelected = this.selectedNodes.size >= 2;
+    const canToggleGroup = hasMultipleSelected || hasGroupedNodes;
     
-    // Enable/disable items based on selection
+    // Check if selection has a collapsible group (non-collapsed group)
+    const canCollapseGroup = this._selectionHasCollapsibleGroup();
+    
+    // Show/hide other items based on context
     const items = this.contextMenu.querySelectorAll('.context-menu-item');
     items.forEach(item => {
       const action = item.dataset.action;
-      const submenu = item.dataset.submenu;
       
-      if (['copy', 'duplicate', 'disconnect', 'delete'].includes(action)) {
-        item.classList.toggle('disabled', !hasNode);
-        item.style.display = isConnection ? 'none' : 'block';
-      }
-      if (action === 'paste') {
-        item.classList.toggle('disabled', !this.clipboard);
-        item.style.display = isConnection ? 'none' : 'block';
+      // For connection context menu, hide most items
+      if (isConnection) {
+        if (action !== 'delete-connection') {
+          item.style.display = 'none';
+        }
+      } else {
+        // Normal context menu
+        if (action === 'delete-connection') {
+          item.style.display = 'none';
+        } else {
+          item.style.display = 'block';
+          if (['copy', 'duplicate', 'disconnect', 'delete'].includes(action)) {
+            item.classList.toggle('disabled', !hasNode);
+          }
+          if (action === 'paste') {
+            item.classList.toggle('disabled', !this.clipboard);
+          }
+          if (action === 'toggle-group') {
+            item.classList.toggle('disabled', !canToggleGroup);
+            // Update label based on state
+            if (hasGroupedNodes) {
+              item.textContent = 'Ungroup';
+            } else if (hasMultipleSelected) {
+              item.textContent = 'Group Selected';
+            } else {
+              item.textContent = 'Group / Ungroup';
+            }
+          }
+          if (action === 'collapse-group') {
+            item.classList.toggle('disabled', !canCollapseGroup);
+          }
+        }
       }
     });
     
-    // Hide dividers for connection menu
+    // Show/hide dividers
     const dividers = this.contextMenu.querySelectorAll('.context-menu-divider');
     dividers.forEach(d => {
       d.style.display = isConnection ? 'none' : 'block';
@@ -4126,22 +4205,25 @@ export class WorkflowBuilder {
    */
   _setupAdvancedFeatures() {
     const canvas = this.container.querySelector('#drawflow-canvas');
-    if (!canvas) return;
+    const canvasContainer = this.container.querySelector('.workflow-canvas-container');
+    if (!canvas || !canvasContainer) return;
 
-    // Selection box for multi-select
+    // Selection box for multi-select - now positioned relative to container
     const selectionBox = this.container.querySelector('.selection-box');
     
     // State for drag selection
     let isDragging = false;
     let startX = 0, startY = 0;
-    let canvasRect = null;
+    let containerRect = null;
+    let dragStartTime = 0;
     
-    // Multi-select with shift+click - use mousedown to catch before Drawflow
+    // Multi-select with Ctrl/Cmd+click or Shift+click on node
     canvas.addEventListener('mousedown', (e) => {
       const nodeEl = e.target.closest('.drawflow-node');
+      const isModifierKey = e.shiftKey || e.ctrlKey || e.metaKey;
       
-      // Shift+click on node - toggle selection
-      if (nodeEl && e.shiftKey) {
+      // Ctrl/Shift+click on node - toggle selection
+      if (nodeEl && isModifierKey) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -4160,16 +4242,17 @@ export class WorkflowBuilder {
         return;
       }
       
-      // Shift+drag on empty area - start selection box
-      if (e.shiftKey && !nodeEl && e.button === 0) {
+      // Shift/Ctrl+drag on empty area - start selection box
+      if (isModifierKey && !nodeEl && e.button === 0) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
         
         isDragging = true;
-        canvasRect = canvas.getBoundingClientRect();
-        startX = e.clientX - canvasRect.left;
-        startY = e.clientY - canvasRect.top;
+        dragStartTime = Date.now();
+        containerRect = canvasContainer.getBoundingClientRect();
+        startX = e.clientX - containerRect.left;
+        startY = e.clientY - containerRect.top;
         
         if (selectionBox) {
           selectionBox.style.left = `${startX}px`;
@@ -4182,22 +4265,23 @@ export class WorkflowBuilder {
       }
     }, true); // Capture phase to run before Drawflow
 
-    // Clear selection on regular click (non-shift)
+    // Clear selection on regular click (no modifier key)
     canvas.addEventListener('click', (e) => {
       const nodeEl = e.target.closest('.drawflow-node');
-      if (!nodeEl && !e.shiftKey) {
+      const isModifierKey = e.shiftKey || e.ctrlKey || e.metaKey;
+      if (!nodeEl && !isModifierKey && this.selectedNodes.size > 0) {
         this.clearSelection();
       }
     });
 
     // Track mouse movement for selection box
     const onMouseMove = (e) => {
-      if (!isDragging || !selectionBox || !canvasRect) return;
+      if (!isDragging || !selectionBox || !containerRect) return;
       
       e.preventDefault();
       
-      const currentX = e.clientX - canvasRect.left;
-      const currentY = e.clientY - canvasRect.top;
+      const currentX = e.clientX - containerRect.left;
+      const currentY = e.clientY - containerRect.top;
       
       const left = Math.min(startX, currentX);
       const top = Math.min(startY, currentY);
@@ -4216,7 +4300,7 @@ export class WorkflowBuilder {
       
       isDragging = false;
       
-      if (selectionBox && canvasRect) {
+      if (selectionBox && containerRect) {
         const boxLeft = parseFloat(selectionBox.style.left) || 0;
         const boxTop = parseFloat(selectionBox.style.top) || 0;
         const boxWidth = parseFloat(selectionBox.style.width) || 0;
@@ -4227,10 +4311,10 @@ export class WorkflowBuilder {
         // Only select if box has some size
         if (boxWidth > 10 && boxHeight > 10) {
           const boxScreenRect = {
-            left: canvasRect.left + boxLeft,
-            top: canvasRect.top + boxTop,
-            right: canvasRect.left + boxLeft + boxWidth,
-            bottom: canvasRect.top + boxTop + boxHeight
+            left: containerRect.left + boxLeft,
+            top: containerRect.top + boxTop,
+            right: containerRect.left + boxLeft + boxWidth,
+            bottom: containerRect.top + boxTop + boxHeight
           };
           
           const nodeIds = this.getNodesInRect(boxScreenRect);
@@ -4240,7 +4324,7 @@ export class WorkflowBuilder {
           }
         }
       }
-      canvasRect = null;
+      containerRect = null;
     };
 
     document.addEventListener('mousemove', onMouseMove);
@@ -4269,6 +4353,22 @@ export class WorkflowBuilder {
         }
       });
     }
+
+    // Update group boxes when nodes move
+    this.drawflow.on('nodeMoved', (nodeId) => {
+      const groupId = this._getNodeGroupId(nodeId);
+      if (groupId !== null) {
+        this._updateGroupBox(groupId);
+      }
+    });
+
+    // Clean up groups when nodes are removed
+    this.drawflow.on('nodeRemoved', (nodeId) => {
+      const groupId = this._getNodeGroupId(nodeId);
+      if (groupId !== null) {
+        this._removeNodeFromGroup(nodeId, groupId);
+      }
+    });
 
     // Initialize animated edges if enabled
     if (this.options.animatedEdges) {
@@ -4328,12 +4428,9 @@ export class WorkflowBuilder {
       const internalData = this.drawflow.drawflow.drawflow.Home.data[nodeId];
       if (internalData) {
         internalData.data._nodeColor = color;
-        console.log('[VizFlow] setNodeColor: Stored color', color, 'for node', nodeId);
-      } else {
-        console.warn('[VizFlow] setNodeColor: Internal data not found for node:', nodeId);
       }
     } catch (e) {
-      console.error('[VizFlow] setNodeColor: Error storing color:', e);
+      // Silently fail - color will still be applied visually
     }
     
     this._saveToHistory();
@@ -4345,31 +4442,1174 @@ export class WorkflowBuilder {
 
   /**
    * --------------------------------------------------------------------------
-   * PUBLIC: SET CONNECTION COLOR
+   * PUBLIC: GROUP SELECTED NODES
    * --------------------------------------------------------------------------
    * 
-   * Changes the color of a specific connection line.
+   * Groups the currently selected nodes together.
    * 
-   * @param {SVGElement} connectionEl - SVG connection element
-   * @param {string} color - Hex color value
+   * @returns {number|null} Group ID or null if grouping failed
    * 
    * --------------------------------------------------------------------------
    */
-  setConnectionColor(connectionEl, color) {
-    if (!connectionEl) return;
+  groupSelected() {
+    // Get all selected node IDs
+    const nodeIds = new Set();
     
-    // Apply color to the connection path
-    const path = connectionEl.querySelector('.main-path');
-    if (path) {
-      path.style.stroke = color;
-      path.dataset.customColor = color;
+    // Add multi-selected nodes
+    this.selectedNodes.forEach(id => nodeIds.add(String(id)));
+    
+    // Add single selected node if any
+    const selectedNode = this.container.querySelector('.drawflow-node.selected');
+    if (selectedNode) {
+      nodeIds.add(selectedNode.id.replace('node-', ''));
     }
+    
+    if (nodeIds.size < 2) {
+      this._setStatus('Select at least 2 nodes to group');
+      return null;
+    }
+    
+    // Check if any node is already in a group - remove from old group first
+    nodeIds.forEach(nodeId => {
+      const existingGroupId = this._getNodeGroupId(nodeId);
+      if (existingGroupId !== null) {
+        this._removeNodeFromGroup(nodeId, existingGroupId);
+      }
+    });
+    
+    // Calculate center position for group
+    const bounds = this._calculateBoundsForNodes(nodeIds);
+    
+    // Create new group - find next available number
+    const groupId = this._getNextAvailableGroupNumber();
+    const groupColor = this._getGroupColor(groupId);
+    
+    this.groups.set(groupId, {
+      nodeIds: nodeIds,
+      label: `Group ${groupId}`,
+      color: groupColor,
+      collapsed: false,
+      centerX: bounds.centerX,
+      centerY: bounds.centerY
+    });
+    
+    // Create visual group box
+    this._createGroupBox(groupId);
+    
+    // Mark nodes as grouped
+    nodeIds.forEach(nodeId => {
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl) {
+        nodeEl.dataset.groupId = groupId;
+        nodeEl.classList.add('grouped');
+      }
+    });
+    
+    // Clear all selection
+    this.clearSelection();
     
     this._saveToHistory();
     this._triggerChange();
-    this._setStatus(`Connection color changed`);
+    this._setStatus(`Created group with ${nodeIds.size} nodes`);
     
-    return this;
+    return groupId;
+  }
+
+  /**
+   * Calculate bounding box for a set of node IDs
+   */
+  _calculateBoundsForNodes(nodeIds) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    nodeIds.forEach(nodeId => {
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl) {
+        const nodeData = this.drawflow.getNodeFromId(nodeId);
+        if (nodeData) {
+          minX = Math.min(minX, nodeData.pos_x);
+          minY = Math.min(minY, nodeData.pos_y);
+          maxX = Math.max(maxX, nodeData.pos_x + nodeEl.offsetWidth);
+          maxY = Math.max(maxY, nodeData.pos_y + nodeEl.offsetHeight);
+        }
+      }
+    });
+    
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      centerX: (minX + maxX) / 2,
+      centerY: (minY + maxY) / 2
+    };
+  }
+
+  /**
+   * Ungroup selected nodes or a specific group
+   */
+  ungroupSelected() {
+    const groupIds = new Set();
+    
+    // Check for collapsed group node
+    const collapsedNode = this.container.querySelector('.drawflow-node.selected .collapsed-group-node');
+    if (collapsedNode) {
+      const groupId = parseInt(collapsedNode.dataset.groupId);
+      if (!isNaN(groupId)) groupIds.add(groupId);
+    }
+    
+    // Find groups from multi-selected nodes
+    this.selectedNodes.forEach(nodeId => {
+      const groupId = this._getNodeGroupId(nodeId);
+      if (groupId !== null) groupIds.add(groupId);
+    });
+    
+    // Check single selected node
+    const selectedNode = this.container.querySelector('.drawflow-node.selected');
+    if (selectedNode && !collapsedNode) {
+      const groupId = this._getNodeGroupId(selectedNode.id.replace('node-', ''));
+      if (groupId !== null) groupIds.add(groupId);
+    }
+    
+    if (groupIds.size === 0) {
+      this._setStatus('No grouped nodes selected');
+      return;
+    }
+    
+    // Ungroup all found groups
+    groupIds.forEach(groupId => this._dissolveGroup(groupId));
+    
+    // Clear selection after ungrouping
+    this.clearSelection();
+    
+    this._saveToHistory();
+    this._triggerChange();
+    this._setStatus(`Ungrouped ${groupIds.size} group(s)`);
+  }
+
+  /**
+   * Collapse the group of the selected node
+   */
+  collapseSelectedGroup() {
+    const groupIds = new Set();
+    
+    // Find groups from multi-selected nodes
+    this.selectedNodes.forEach(nodeId => {
+      const groupId = this._getNodeGroupId(nodeId);
+      if (groupId !== null) {
+        const group = this.groups.get(groupId);
+        if (group && !group.collapsed) {
+          groupIds.add(groupId);
+        }
+      }
+    });
+    
+    // Check single selected node
+    const selectedNode = this.container.querySelector('.drawflow-node.selected');
+    if (selectedNode) {
+      const groupId = this._getNodeGroupId(selectedNode.id.replace('node-', ''));
+      if (groupId !== null) {
+        const group = this.groups.get(groupId);
+        if (group && !group.collapsed) {
+          groupIds.add(groupId);
+        }
+      }
+    }
+    
+    if (groupIds.size === 0) {
+      this._setStatus('No expandable group selected');
+      return;
+    }
+    
+    groupIds.forEach(groupId => this._collapseGroup(groupId));
+  }
+
+  /**
+   * Toggle Group: Groups selected nodes OR ungroups if already grouped
+   */
+  toggleGroup() {
+    // Check if any selected node is in a group
+    const hasGroupedNodes = this._selectionHasGroupedNodes();
+    
+    if (hasGroupedNodes) {
+      // Ungroup
+      this.ungroupSelected();
+    } else {
+      // Group
+      this.groupSelected();
+    }
+  }
+
+  /**
+   * Toggle collapse state of a group
+   */
+  toggleGroupCollapse(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group) return;
+    
+    if (group.collapsed) {
+      this._expandGroup(groupId);
+    } else {
+      this._collapseGroup(groupId);
+    }
+  }
+
+  /**
+   * Check if current selection has grouped nodes
+   */
+  _selectionHasGroupedNodes() {
+    // Check multi-selected nodes
+    for (const nodeId of this.selectedNodes) {
+      if (this._getNodeGroupId(nodeId) !== null) return true;
+    }
+    
+    // Check single selected node
+    const selectedNode = this.container.querySelector('.drawflow-node.selected');
+    if (selectedNode) {
+      const nodeId = selectedNode.id.replace('node-', '');
+      if (this._getNodeGroupId(nodeId) !== null) return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Check if current selection has a collapsible (not-collapsed) group
+   */
+  _selectionHasCollapsibleGroup() {
+    // Check multi-selected nodes
+    for (const nodeId of this.selectedNodes) {
+      const groupId = this._getNodeGroupId(nodeId);
+      if (groupId !== null) {
+        const group = this.groups.get(groupId);
+        if (group && !group.collapsed) return true;
+      }
+    }
+    
+    // Check single selected node
+    const selectedNode = this.container.querySelector('.drawflow-node.selected');
+    if (selectedNode) {
+      const nodeId = selectedNode.id.replace('node-', '');
+      const groupId = this._getNodeGroupId(nodeId);
+      if (groupId !== null) {
+        const group = this.groups.get(groupId);
+        if (group && !group.collapsed) return true;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get the group ID for a node
+   */
+  _getNodeGroupId(nodeId) {
+    for (const [groupId, group] of this.groups) {
+      if (group.nodeIds.has(nodeId) || group.nodeIds.has(String(nodeId))) {
+        return groupId;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Remove a node from a group
+   */
+  _removeNodeFromGroup(nodeId, groupId) {
+    const group = this.groups.get(groupId);
+    if (!group) return;
+    
+    group.nodeIds.delete(nodeId);
+    group.nodeIds.delete(String(nodeId));
+    
+    const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+    if (nodeEl) {
+      delete nodeEl.dataset.groupId;
+      nodeEl.classList.remove('grouped');
+    }
+    
+    // If group is empty or has only one node, dissolve it
+    if (group.nodeIds.size < 2) {
+      this._dissolveGroup(groupId);
+    } else {
+      this._updateGroupBox(groupId);
+    }
+  }
+
+  /**
+   * Dissolve a group completely
+   */
+  _dissolveGroup(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group) return;
+    
+    // If collapsed, expand first
+    if (group.collapsed) {
+      this._expandGroup(groupId);
+    }
+    
+    // Remove grouped class from all nodes
+    group.nodeIds.forEach(nodeId => {
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl) {
+        delete nodeEl.dataset.groupId;
+        nodeEl.classList.remove('grouped');
+      }
+    });
+    
+    // Remove group box
+    const groupBox = this.container.querySelector(`.group-box[data-group-id="${groupId}"]`);
+    if (groupBox) {
+      groupBox.remove();
+    }
+    
+    this.groups.delete(groupId);
+  }
+
+  /**
+   * Get the group ID that owns a collapsed node (by collapsed node ID)
+   */
+  _getGroupByCollapsedNodeId(nodeId) {
+    const nodeIdInt = parseInt(nodeId);
+    for (const [groupId, collapsedNodeId] of this.collapsedGroupNodes) {
+      if (collapsedNodeId === nodeIdInt) {
+        return groupId;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Find original node connections from a collapsed group's saved data
+   * Returns the original node IDs that connect to/from a given node
+   */
+  _getOriginalNodesFromCollapsedGroup(collapsedGroupId, direction, externalNodeId) {
+    const group = this.groups.get(collapsedGroupId);
+    if (!group || !group.savedConnections) return [];
+    
+    const externalIdStr = String(externalNodeId);
+    const originalNodes = [];
+    
+    group.savedConnections.forEach(conn => {
+      if (direction === 'output' && conn.type === 'output') {
+        // Looking for original nodes that OUTPUT TO externalNodeId
+        if (conn.toNode === externalIdStr) {
+          originalNodes.push({
+            nodeId: conn.fromNode,
+            output: conn.fromOutput,
+            input: conn.toInput
+          });
+        }
+      } else if (direction === 'input' && conn.type === 'input') {
+        // Looking for original nodes that receive INPUT FROM externalNodeId  
+        if (conn.fromNode === externalIdStr) {
+          originalNodes.push({
+            nodeId: conn.toNode,
+            input: conn.toInput,
+            output: conn.fromOutput
+          });
+        }
+      }
+    });
+    return originalNodes;
+  }
+
+  /**
+   * Collapse a group into a single node
+   */
+  _collapseGroup(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group || group.collapsed) return;
+    
+    // Get group bounds for positioning the collapsed node
+    const bounds = this._getGroupBounds(groupId);
+    if (!bounds) return;
+    
+    const groupNodeIds = new Set(Array.from(group.nodeIds).map(id => String(id)));
+    
+    // STEP 1: Collect all connections to save (ALWAYS use original node IDs)
+    const allConnections = [];
+    
+    group.nodeIds.forEach(nodeId => {
+      const nodeIdStr = String(nodeId);
+      const nodeData = this.drawflow.getNodeFromId(nodeId);
+      if (!nodeData) return;
+      
+      // Check outputs (connections FROM this node)
+      Object.entries(nodeData.outputs || {}).forEach(([outputKey, output]) => {
+        output.connections.forEach(conn => {
+          const targetId = String(conn.node);
+          const targetInput = conn.output;
+          const isInternal = groupNodeIds.has(targetId);
+          
+          // Check if target is a collapsed group placeholder
+          const targetCollapsedGroupId = this._getGroupByCollapsedNodeId(targetId);
+          if (targetCollapsedGroupId !== null) {
+            // Resolve to original target nodes
+            const originals = this._getOriginalNodesFromCollapsedGroup(targetCollapsedGroupId, 'input', nodeIdStr);
+            if (originals.length > 0) {
+              originals.forEach(orig => {
+                allConnections.push({
+                  type: 'output',
+                  fromNode: nodeIdStr,
+                  fromOutput: outputKey,
+                  toNode: orig.nodeId,
+                  toInput: orig.input
+                });
+              });
+            } else {
+              // Fallback: save connection to first node in that group's saved output connections
+              const targetGroup = this.groups.get(targetCollapsedGroupId);
+              if (targetGroup && targetGroup.savedConnections) {
+                const inputConns = targetGroup.savedConnections.filter(c => c.type === 'input');
+                if (inputConns.length > 0) {
+                  allConnections.push({
+                    type: 'output',
+                    fromNode: nodeIdStr,
+                    fromOutput: outputKey,
+                    toNode: inputConns[0].toNode,
+                    toInput: inputConns[0].toInput
+                  });
+                }
+              }
+            }
+            return;
+          }
+          
+          allConnections.push({
+            type: isInternal ? 'internal' : 'output',
+            fromNode: nodeIdStr,
+            fromOutput: outputKey,
+            toNode: targetId,
+            toInput: targetInput
+          });
+        });
+      });
+      
+      // Check inputs (connections TO this node)
+      Object.entries(nodeData.inputs || {}).forEach(([inputKey, input]) => {
+        input.connections.forEach(conn => {
+          const sourceId = String(conn.node);
+          const sourceOutput = conn.input;
+          
+          // Skip internal connections (already captured via outputs)
+          if (groupNodeIds.has(sourceId)) return;
+          
+          // Check if source is a collapsed group placeholder
+          const sourceCollapsedGroupId = this._getGroupByCollapsedNodeId(sourceId);
+          if (sourceCollapsedGroupId !== null) {
+            // Resolve to original source nodes
+            const originals = this._getOriginalNodesFromCollapsedGroup(sourceCollapsedGroupId, 'output', nodeIdStr);
+            if (originals.length > 0) {
+              originals.forEach(orig => {
+                allConnections.push({
+                  type: 'input',
+                  fromNode: orig.nodeId,
+                  fromOutput: orig.output,
+                  toNode: nodeIdStr,
+                  toInput: inputKey
+                });
+              });
+            } else {
+              // Fallback: save connection from first output node in that group
+              const sourceGroup = this.groups.get(sourceCollapsedGroupId);
+              if (sourceGroup && sourceGroup.savedConnections) {
+                const outputConns = sourceGroup.savedConnections.filter(c => c.type === 'output');
+                if (outputConns.length > 0) {
+                  allConnections.push({
+                    type: 'input',
+                    fromNode: outputConns[0].fromNode,
+                    fromOutput: outputConns[0].fromOutput,
+                    toNode: nodeIdStr,
+                    toInput: inputKey
+                  });
+                }
+              }
+            }
+            return;
+          }
+          
+          allConnections.push({
+            type: 'input',
+            fromNode: sourceId,
+            fromOutput: sourceOutput,
+            toNode: nodeIdStr,
+            toInput: inputKey
+          });
+        });
+      });
+    });
+    
+    // Save connections (deep copy)
+    group.savedConnections = JSON.parse(JSON.stringify(allConnections));
+    group.collapsed = true;
+    
+    // Calculate position for collapsed node
+    const centerX = bounds.x + bounds.width / 2 - 75;
+    const centerY = bounds.y + bounds.height / 2 - 30;
+    
+    // STEP 2: Collect ALL current connections to remove (don't remove during iteration)
+    const connectionsToRemove = [];
+    
+    group.nodeIds.forEach(nodeId => {
+      const nodeData = this.drawflow.getNodeFromId(nodeId);
+      if (!nodeData) return;
+      
+      Object.entries(nodeData.outputs || {}).forEach(([outputKey, output]) => {
+        output.connections.forEach(conn => {
+          connectionsToRemove.push({
+            from: parseInt(nodeId),
+            to: parseInt(conn.node),
+            output: outputKey,
+            input: conn.output
+          });
+        });
+      });
+      
+      Object.entries(nodeData.inputs || {}).forEach(([inputKey, input]) => {
+        input.connections.forEach(conn => {
+          connectionsToRemove.push({
+            from: parseInt(conn.node),
+            to: parseInt(nodeId),
+            output: conn.input,
+            input: inputKey
+          });
+        });
+      });
+    });
+    
+    // Remove connections (now safe to iterate)
+    connectionsToRemove.forEach(conn => {
+      try {
+        this.drawflow.removeSingleConnection(conn.from, conn.to, conn.output, conn.input);
+      } catch (e) {}
+    });
+    
+    // STEP 3: Hide group box and nodes
+    const groupBox = this.container.querySelector(`.group-box[data-group-id="${groupId}"]`);
+    if (groupBox) {
+      groupBox.style.display = 'none';
+    }
+    
+    group.nodeIds.forEach(nodeId => {
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl) {
+        nodeEl.style.display = 'none';
+      }
+    });
+    
+    // STEP 4: Create collapsed placeholder node
+    const collapsedNodeId = this._createCollapsedNode(groupId, group.label, centerX, centerY, group.color);
+    this.collapsedGroupNodes.set(groupId, collapsedNodeId);
+    
+    // STEP 5: Create connections to/from the collapsed node
+    const externalInputs = allConnections.filter(c => c.type === 'input');
+    const externalOutputs = allConnections.filter(c => c.type === 'output');
+    
+    const createdConnections = new Set();
+    
+    // Input connections (from outside -> collapsed node)
+    externalInputs.forEach(conn => {
+      let sourceNodeId = parseInt(conn.fromNode);
+      let sourceOutput = conn.fromOutput;
+      
+      // If source is in another collapsed group, use that collapsed node
+      const sourceCollapsedGroupId = this._getCollapsedGroupForNode(conn.fromNode);
+      if (sourceCollapsedGroupId !== null && sourceCollapsedGroupId !== groupId) {
+        const collNode = this.collapsedGroupNodes.get(sourceCollapsedGroupId);
+        if (collNode) {
+          sourceNodeId = collNode;
+          sourceOutput = 'output_1';
+        }
+      }
+      
+      const connKey = `${sourceNodeId}-${collapsedNodeId}-${sourceOutput}-input_1`;
+      if (!createdConnections.has(connKey) && sourceNodeId) {
+        try {
+          this.drawflow.addConnection(sourceNodeId, collapsedNodeId, sourceOutput, 'input_1');
+          createdConnections.add(connKey);
+        } catch (e) {}
+      }
+    });
+    
+    // Output connections (collapsed node -> outside)
+    externalOutputs.forEach(conn => {
+      let targetNodeId = parseInt(conn.toNode);
+      let targetInput = conn.toInput;
+      
+      // If target is in another collapsed group, use that collapsed node
+      const targetCollapsedGroupId = this._getCollapsedGroupForNode(conn.toNode);
+      if (targetCollapsedGroupId !== null && targetCollapsedGroupId !== groupId) {
+        const collNode = this.collapsedGroupNodes.get(targetCollapsedGroupId);
+        if (collNode) {
+          targetNodeId = collNode;
+          targetInput = 'input_1';
+        }
+      }
+      
+      const connKey = `${collapsedNodeId}-${targetNodeId}-output_1-${targetInput}`;
+      if (!createdConnections.has(connKey) && targetNodeId) {
+        try {
+          this.drawflow.addConnection(collapsedNodeId, targetNodeId, 'output_1', targetInput);
+          createdConnections.add(connKey);
+        } catch (e) {}
+      }
+    });
+    
+    this._saveToHistory();
+    this._triggerChange();
+    this._setStatus(`Collapsed ${group.label}`);
+  }
+
+  /**
+   * Create a collapsed placeholder node
+   */
+  _createCollapsedNode(groupId, label, x, y, color) {
+    const group = this.groups.get(groupId);
+    const nodeCount = group ? group.nodeIds.size : 0;
+    
+    const html = `
+      <div class="collapsed-group-content" style="border-left: 4px solid ${color};">
+        <div class="collapsed-group-icon">📦</div>
+        <div class="collapsed-group-info">
+          <div class="collapsed-group-label">${label}</div>
+          <div class="collapsed-group-count">${nodeCount} nodes</div>
+        </div>
+        <button class="collapsed-group-expand" title="Expand">+</button>
+      </div>
+    `;
+    
+    // Create node with 1 input and 1 output
+    const nodeId = this.drawflow.addNode(
+      'collapsed-group',
+      1, 1,  // inputs, outputs
+      x, y,
+      'collapsed-group-node',
+      { groupId: groupId },
+      html
+    );
+    
+    // Add expand button event
+    setTimeout(() => {
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl) {
+        nodeEl.dataset.collapsedGroupId = groupId;
+        const expandBtn = nodeEl.querySelector('.collapsed-group-expand');
+        if (expandBtn) {
+          expandBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._expandGroup(groupId);
+          });
+        }
+      }
+    }, 0);
+    
+    return nodeId;
+  }
+
+  /**
+   * Expand a collapsed group back to its original nodes
+   */
+  _expandGroup(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group || !group.collapsed) return;
+    
+    const collapsedNodeId = this.collapsedGroupNodes.get(groupId);
+    
+    // First, update state so _getCollapsedGroupForNode doesn't include this group
+    group.collapsed = false;
+    this.collapsedGroupNodes.delete(groupId);
+    
+    // Remove the collapsed node (this also removes its connections)
+    if (collapsedNodeId) {
+      try {
+        this.drawflow.removeNodeId(`node-${collapsedNodeId}`);
+      } catch (e) {
+        console.warn('Could not remove collapsed node:', e);
+      }
+    }
+    
+    // Show all nodes in the group
+    group.nodeIds.forEach(nodeId => {
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl) {
+        nodeEl.style.display = '';
+      }
+    });
+    
+    // Track restored connections to avoid duplicates
+    const restoredConnections = new Set();
+    
+    // Restore ALL saved connections
+    if (group.savedConnections && group.savedConnections.length > 0) {
+      group.savedConnections.forEach(conn => {
+        try {
+          let fromNode = parseInt(conn.fromNode);
+          let toNode = parseInt(conn.toNode);
+          let fromOutput = conn.fromOutput;
+          let toInput = conn.toInput;
+          
+          // Check if fromNode is in a DIFFERENT collapsed group
+          const fromCollapsedGroupId = this._getCollapsedGroupForNode(conn.fromNode);
+          if (fromCollapsedGroupId !== null && fromCollapsedGroupId !== groupId) {
+            const collNodeId = this.collapsedGroupNodes.get(fromCollapsedGroupId);
+            if (collNodeId) {
+              fromNode = collNodeId;
+              fromOutput = 'output_1';
+            }
+          }
+          
+          // Check if toNode is in a DIFFERENT collapsed group
+          const toCollapsedGroupId = this._getCollapsedGroupForNode(conn.toNode);
+          if (toCollapsedGroupId !== null && toCollapsedGroupId !== groupId) {
+            const collNodeId = this.collapsedGroupNodes.get(toCollapsedGroupId);
+            if (collNodeId) {
+              toNode = collNodeId;
+              toInput = 'input_1';
+            }
+          }
+          
+          // Create unique key to avoid duplicate connections
+          const connKey = `${fromNode}-${toNode}-${fromOutput}-${toInput}`;
+          if (!restoredConnections.has(connKey) && fromNode && toNode) {
+            this.drawflow.addConnection(fromNode, toNode, fromOutput, toInput);
+            restoredConnections.add(connKey);
+          }
+        } catch (e) {
+          console.warn('Could not restore connection:', conn, e);
+        }
+      });
+    }
+    
+    // Show the group box again
+    const groupBox = this.container.querySelector(`.group-box[data-group-id="${groupId}"]`);
+    if (groupBox) {
+      groupBox.style.display = '';
+    }
+    
+    // Clear saved connections
+    group.savedConnections = null;
+    
+    // Update group box position
+    this._updateGroupBox(groupId);
+    
+    this._saveToHistory();
+    this._triggerChange();
+    this._setStatus(`Expanded ${group.label}`);
+  }
+  
+  /**
+   * Check if a node ID belongs to a currently collapsed group
+   * Returns the groupId if collapsed, null otherwise
+   */
+  _getCollapsedGroupForNode(nodeId) {
+    const nodeIdStr = String(nodeId);
+    for (const [groupId, group] of this.groups) {
+      if (group.collapsed) {
+        if (group.nodeIds.has(nodeIdStr)) {
+          return groupId;
+        }
+        // Also check with original type
+        for (const id of group.nodeIds) {
+          if (String(id) === nodeIdStr) {
+            return groupId;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Hide all connections to/from a node
+   */
+  _hideNodeConnections(nodeId) {
+    // Find all connections involving this node
+    const connections = this.container.querySelectorAll(`.connection.node_in_node-${nodeId}, .connection.node_out_node-${nodeId}`);
+    connections.forEach(conn => {
+      conn.style.display = 'none';
+    });
+  }
+
+  /**
+   * Show all connections to/from a node
+   */
+  _showNodeConnections(nodeId) {
+    // Find all connections involving this node
+    const connections = this.container.querySelectorAll(`.connection.node_in_node-${nodeId}, .connection.node_out_node-${nodeId}`);
+    connections.forEach(conn => {
+      conn.style.display = '';
+    });
+  }
+
+  /**
+   * Hide ALL connections involving any node in the group
+   */
+  _hideGroupConnections(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group) return;
+    
+    // Get all connections
+    const allConnections = this.container.querySelectorAll('.connection');
+    
+    allConnections.forEach(conn => {
+      const classList = conn.getAttribute('class') || '';
+      
+      // Extract node IDs from class names
+      const inMatch = classList.match(/node_in_node-(\d+)/);
+      const outMatch = classList.match(/node_out_node-(\d+)/);
+      
+      if (inMatch && outMatch) {
+        const inNodeId = inMatch[1];
+        const outNodeId = outMatch[1];
+        
+        // Hide if EITHER node is in this group
+        if (group.nodeIds.has(inNodeId) || group.nodeIds.has(outNodeId)) {
+          conn.style.display = 'none';
+        }
+      }
+    });
+  }
+
+  /**
+   * Show ALL connections involving any node in the group
+   */
+  _showGroupConnections(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group) return;
+    
+    // Get all connections
+    const allConnections = this.container.querySelectorAll('.connection');
+    
+    allConnections.forEach(conn => {
+      const classList = conn.getAttribute('class') || '';
+      
+      // Extract node IDs from class names
+      const inMatch = classList.match(/node_in_node-(\d+)/);
+      const outMatch = classList.match(/node_out_node-(\d+)/);
+      
+      if (inMatch && outMatch) {
+        const inNodeId = inMatch[1];
+        const outNodeId = outMatch[1];
+        
+        // Show if either node is in this group
+        if (group.nodeIds.has(inNodeId) || group.nodeIds.has(outNodeId)) {
+          conn.style.display = '';
+        }
+      }
+    });
+  }
+
+  /**
+   * Find the position of the entry node in a group (node with external inputs)
+   */
+  _findGroupEntryNodePosition(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group) return null;
+    
+    // Get all connections to find which grouped node has external inputs
+    const allConnections = this.container.querySelectorAll('.connection');
+    let entryNodeId = null;
+    
+    allConnections.forEach(conn => {
+      if (entryNodeId) return; // Already found
+      
+      const classList = conn.getAttribute('class') || '';
+      const inMatch = classList.match(/node_in_node-(\d+)/);
+      const outMatch = classList.match(/node_out_node-(\d+)/);
+      
+      if (inMatch && outMatch) {
+        const inNodeId = inMatch[1];
+        const outNodeId = outMatch[1];
+        
+        // Check if this is an external connection INTO the group
+        // (source node is outside group, target node is inside group)
+        if (group.nodeIds.has(inNodeId) && !group.nodeIds.has(outNodeId)) {
+          entryNodeId = inNodeId;
+        }
+      }
+    });
+    
+    // If found an entry node, get its position
+    if (entryNodeId) {
+      const nodeData = this.drawflow.getNodeFromId(entryNodeId);
+      if (nodeData) {
+        return { x: nodeData.pos_x, y: nodeData.pos_y };
+      }
+    }
+    
+    // Fallback: use the leftmost node in the group
+    let leftmostX = Infinity;
+    let leftmostY = 0;
+    
+    group.nodeIds.forEach(nodeId => {
+      const nodeData = this.drawflow.getNodeFromId(nodeId);
+      if (nodeData && nodeData.pos_x < leftmostX) {
+        leftmostX = nodeData.pos_x;
+        leftmostY = nodeData.pos_y;
+      }
+    });
+    
+    if (leftmostX !== Infinity) {
+      return { x: leftmostX, y: leftmostY };
+    }
+    
+    return null;
+  }
+
+  /**
+   * Create visual group box
+   */
+  _createGroupBox(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group) {
+      console.warn('[VizFlow] Group not found:', groupId);
+      return;
+    }
+    
+    // Find the Drawflow canvas element - it has class 'drawflow'
+    // Try multiple selectors for compatibility
+    let canvas = this.container.querySelector('#drawflow-canvas .drawflow');
+    if (!canvas) {
+      canvas = this.container.querySelector('.drawflow');
+    }
+    if (!canvas) {
+      canvas = this.container.querySelector('#drawflow-canvas');
+    }
+    if (!canvas) {
+      console.warn('[VizFlow] Canvas not found for group box');
+      return;
+    }
+    
+    // Calculate bounding box
+    const bounds = this._getGroupBounds(groupId);
+    if (!bounds) {
+      console.warn('[VizFlow] Could not calculate group bounds');
+      return;
+    }
+    
+    // Create group box element
+    const groupBox = document.createElement('div');
+    groupBox.className = 'group-box';
+    groupBox.dataset.groupId = groupId;
+    groupBox.innerHTML = `
+      <div class="group-header">
+        <input type="text" class="group-label" value="${group.label}" placeholder="Group name">
+        <button class="group-collapse-btn" title="Collapse group">−</button>
+        <button class="group-ungroup-btn" title="Ungroup">×</button>
+      </div>
+    `;
+    
+    // Position and style
+    groupBox.style.left = `${bounds.x - 15}px`;
+    groupBox.style.top = `${bounds.y - 35}px`;
+    groupBox.style.width = `${bounds.width + 30}px`;
+    groupBox.style.height = `${bounds.height + 50}px`;
+    groupBox.style.borderColor = group.color;
+    groupBox.style.setProperty('--group-color', group.color);
+    
+    canvas.appendChild(groupBox);
+    
+    // Setup events
+    const labelInput = groupBox.querySelector('.group-label');
+    labelInput.addEventListener('input', (e) => {
+      group.label = e.target.value;
+      this._triggerChange();
+    });
+    labelInput.addEventListener('mousedown', (e) => e.stopPropagation());
+    
+    // Collapse button
+    const collapseBtn = groupBox.querySelector('.group-collapse-btn');
+    collapseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._collapseGroup(groupId);
+    });
+    
+    const ungroupBtn = groupBox.querySelector('.group-ungroup-btn');
+    ungroupBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._dissolveGroup(groupId);
+      this._saveToHistory();
+      this._triggerChange();
+      this._setStatus('Group removed');
+    });
+    
+    // Allow dragging group box to move all nodes
+    this._setupGroupDrag(groupId, groupBox);
+  }
+
+  /**
+   * Update group box position and size
+   */
+  _updateGroupBox(groupId) {
+    const groupBox = this.container.querySelector(`.group-box[data-group-id="${groupId}"]`);
+    if (!groupBox) return;
+    
+    const bounds = this._getGroupBounds(groupId);
+    if (!bounds) {
+      groupBox.remove();
+      return;
+    }
+    
+    groupBox.style.left = `${bounds.x - 15}px`;
+    groupBox.style.top = `${bounds.y - 35}px`;
+    groupBox.style.width = `${bounds.width + 30}px`;
+    groupBox.style.height = `${bounds.height + 50}px`;
+  }
+
+  /**
+   * Get bounding box for a group
+   */
+  _getGroupBounds(groupId) {
+    const group = this.groups.get(groupId);
+    if (!group || group.nodeIds.size === 0) return null;
+    
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    group.nodeIds.forEach(nodeId => {
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl) {
+        const nodeData = this.drawflow.getNodeFromId(nodeId);
+        if (nodeData) {
+          minX = Math.min(minX, nodeData.pos_x);
+          minY = Math.min(minY, nodeData.pos_y);
+          maxX = Math.max(maxX, nodeData.pos_x + nodeEl.offsetWidth);
+          maxY = Math.max(maxY, nodeData.pos_y + nodeEl.offsetHeight);
+        }
+      }
+    });
+    
+    if (minX === Infinity) return null;
+    
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+
+  /**
+   * Setup drag behavior for group box
+   */
+  _setupGroupDrag(groupId, groupBox) {
+    let isDragging = false;
+    let startX, startY;
+    let nodeStartPositions = new Map();
+    
+    const header = groupBox.querySelector('.group-header');
+    
+    header.addEventListener('mousedown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      
+      // Store starting positions of all nodes in group
+      const group = this.groups.get(groupId);
+      if (group) {
+        group.nodeIds.forEach(nodeId => {
+          const nodeData = this.drawflow.getNodeFromId(nodeId);
+          if (nodeData) {
+            nodeStartPositions.set(nodeId, { x: nodeData.pos_x, y: nodeData.pos_y });
+          }
+        });
+      }
+      
+      groupBox.classList.add('dragging');
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const dx = (e.clientX - startX) / this.drawflow.zoom;
+      const dy = (e.clientY - startY) / this.drawflow.zoom;
+      
+      const group = this.groups.get(groupId);
+      if (group) {
+        group.nodeIds.forEach(nodeId => {
+          const startPos = nodeStartPositions.get(nodeId);
+          if (startPos) {
+            const newX = startPos.x + dx;
+            const newY = startPos.y + dy;
+            
+            // Update node position
+            const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+            if (nodeEl) {
+              nodeEl.style.left = `${newX}px`;
+              nodeEl.style.top = `${newY}px`;
+            }
+            
+            // Update Drawflow data
+            try {
+              const internalData = this.drawflow.drawflow.drawflow.Home.data[nodeId];
+              if (internalData) {
+                internalData.pos_x = newX;
+                internalData.pos_y = newY;
+              }
+            } catch (err) {}
+          }
+        });
+        
+        // Update connections
+        this.drawflow.updateConnectionNodes(`node-${[...group.nodeIds][0]}`);
+        
+        // Update group box position
+        this._updateGroupBox(groupId);
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        nodeStartPositions.clear();
+        groupBox.classList.remove('dragging');
+        this._saveToHistory();
+        this._triggerChange();
+      }
+    });
+  }
+
+  /**
+   * Get next available group number (fills gaps from deleted groups)
+   */
+  _getNextAvailableGroupNumber() {
+    // If no groups exist, start at 1
+    if (this.groups.size === 0) {
+      return 1;
+    }
+    
+    // Find the smallest unused number
+    const usedIds = Array.from(this.groups.keys()).sort((a, b) => a - b);
+    let nextId = 1;
+    
+    for (const id of usedIds) {
+      if (id === nextId) {
+        nextId++;
+      } else if (id > nextId) {
+        // Found a gap
+        break;
+      }
+    }
+    
+    return nextId;
+  }
+
+  /**
+   * Get color for a group based on ID
+   */
+  _getGroupColor(groupId) {
+    const colors = [
+      '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444',
+      '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+    ];
+    return colors[(groupId - 1) % colors.length];
+  }
+
+  /**
+   * Update all group boxes (call after node moves)
+   */
+  _updateAllGroupBoxes() {
+    this.groups.forEach((group, groupId) => {
+      this._updateGroupBox(groupId);
+    });
   }
 
   /**
