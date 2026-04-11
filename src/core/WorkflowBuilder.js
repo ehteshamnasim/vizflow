@@ -377,8 +377,10 @@ export class WorkflowBuilder {
         -->
         <header class="workflow-header">
           <div class="workflow-title">
-            <span class="workflow-icon">FK</span>
-            <h1>FlowKit</h1>
+            <a href="/docs.html" target="_blank" class="workflow-title-link">
+              <span class="workflow-icon">FK</span>
+              <h1>FlowKit</h1>
+            </a>
           </div>
           <div class="workflow-actions">
             <div class="dropdown" id="examples-dropdown">
@@ -400,11 +402,12 @@ export class WorkflowBuilder {
                 <div class="dropdown-item" data-example="etl-pipeline">ETL Pipeline</div>
               </div>
             </div>
-            <button class="btn btn-secondary" data-action="validate">Validate</button>
-            <button class="btn btn-secondary" data-action="clear">Clear</button>
-            <button class="btn btn-secondary" data-action="import">Import</button>
-            <button class="btn btn-secondary" data-action="export-image">Image</button>
-            <button class="btn btn-primary" data-action="export">Export</button>
+            <button class="btn btn-secondary" data-action="validate" data-tooltip="Validate Workflow">Validate</button>
+            <button class="btn btn-secondary" data-action="clear" data-tooltip="Clear Canvas">Clear</button>
+            <button class="btn btn-secondary" data-action="import" data-tooltip="Import JSON">Import</button>
+            <button class="btn btn-secondary" data-action="export-image" data-tooltip="Export as PNG">Image</button>
+            <button class="btn btn-primary" data-action="export" data-tooltip="Export as JSON">Export</button>
+            <a href="/docs.html" target="_blank" class="btn btn-primary" data-tooltip="API Documentation">Docs</a>
           </div>
         </header>
 
@@ -441,53 +444,53 @@ export class WorkflowBuilder {
           <section class="workflow-canvas-container">
             <div class="canvas-toolbar">
               <div class="zoom-controls">
-                <button class="toolbar-btn" data-action="zoom-in" title="Zoom In">
+                <button class="toolbar-btn" data-action="zoom-in" data-tooltip="Zoom In">
                   <span>+</span>
                 </button>
                 <span class="zoom-level">100%</span>
-                <button class="toolbar-btn" data-action="zoom-out" title="Zoom Out">
+                <button class="toolbar-btn" data-action="zoom-out" data-tooltip="Zoom Out">
                   <span>−</span>
                 </button>
-                <button class="toolbar-btn" data-action="zoom-reset" title="Reset Zoom">
+                <button class="toolbar-btn" data-action="zoom-reset" data-tooltip="Reset Zoom">
                   <span>⟲</span>
                 </button>
-                <button class="toolbar-btn" data-action="fit-view" title="Fit All Nodes">
+                <button class="toolbar-btn" data-action="fit-view" data-tooltip="Fit View">
                   <span>⊡</span>
                 </button>
               </div>
               <div class="toggle-controls">
-                <button class="toolbar-btn toggle-btn" data-action="toggle-minimap" title="Toggle Minimap">
+                <button class="toolbar-btn toggle-btn" data-action="toggle-minimap" data-tooltip="Minimap">
                   <span>M</span>
                 </button>
-                <button class="toolbar-btn toggle-btn" data-action="toggle-snap" title="Toggle Snap to Grid">
+                <button class="toolbar-btn toggle-btn" data-action="toggle-snap" data-tooltip="Snap to Grid">
                   <span>⊞</span>
                 </button>
-                <button class="toolbar-btn toggle-btn" data-action="toggle-animate" title="Toggle Animated Edges">
+                <button class="toolbar-btn toggle-btn" data-action="toggle-animate" data-tooltip="Animated Edges">
                   <span>⟿</span>
                 </button>
               </div>
               <div class="history-controls">
-                <button class="toolbar-btn" data-action="undo" title="Undo (Ctrl+Z)" disabled>
+                <button class="toolbar-btn" data-action="undo" data-tooltip="Undo (Ctrl+Z)" disabled>
                   <span>↶</span>
                 </button>
-                <button class="toolbar-btn" data-action="redo" title="Redo (Ctrl+Y)" disabled>
+                <button class="toolbar-btn" data-action="redo" data-tooltip="Redo (Ctrl+Y)" disabled>
                   <span>↷</span>
                 </button>
               </div>
               <div class="execution-controls">
-                <button class="toolbar-btn exec-btn" data-action="exec-run" title="Run Workflow">
+                <button class="toolbar-btn exec-btn" data-action="exec-run" data-tooltip="Run Workflow">
                   <span>▶</span>
                 </button>
-                <button class="toolbar-btn exec-btn" data-action="exec-pause" title="Pause" disabled>
+                <button class="toolbar-btn exec-btn" data-action="exec-pause" data-tooltip="Pause" disabled>
                   <span>⏸</span>
                 </button>
-                <button class="toolbar-btn exec-btn" data-action="exec-stop" title="Stop" disabled>
+                <button class="toolbar-btn exec-btn" data-action="exec-stop" data-tooltip="Stop" disabled>
                   <span>⏹</span>
                 </button>
-                <button class="toolbar-btn exec-btn" data-action="exec-reset" title="Reset">
+                <button class="toolbar-btn exec-btn" data-action="exec-reset" data-tooltip="Reset">
                   <span>↺</span>
                 </button>
-                <button class="toolbar-btn exec-btn" data-action="exec-log" title="Toggle Execution Log">
+                <button class="toolbar-btn exec-btn" data-action="exec-log" data-tooltip="Execution Log">
                   <span>L</span>
                 </button>
               </div>
@@ -601,6 +604,23 @@ export class WorkflowBuilder {
           <div class="modal-footer">
             <button class="btn btn-secondary" data-action="close-modal">Cancel</button>
             <button class="btn btn-primary" data-action="save-custom-node">Create Node</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- CONFIRMATION MODAL -->
+      <div class="modal-overlay" id="confirm-modal">
+        <div class="modal" style="max-width: 400px;">
+          <div class="modal-header">
+            <h3 id="confirm-modal-title">Confirm</h3>
+            <button class="modal-close" data-action="close-confirm">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p id="confirm-modal-message" style="color: var(--text-dark); margin: 0;"></p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-action="confirm-cancel">Cancel</button>
+            <button class="btn btn-primary" data-action="confirm-ok">Confirm</button>
           </div>
         </div>
       </div>
@@ -766,6 +786,19 @@ export class WorkflowBuilder {
    * --------------------------------------------------------------------------
    */
   _createNodeTemplate(name, definition) {
+    // If no definition, create a basic fallback node
+    if (!definition) {
+      console.warn(`[FlowKit] No definition found for node type: ${name}`);
+      return `
+        <div class="workflow-node">
+          <div class="node-header">
+            <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></span>
+            <span class="node-label">${name}</span>
+          </div>
+        </div>
+      `;
+    }
+    
     // Icon-only mode: just show a large icon (for shape nodes like circle, star, etc.)
     if (definition.iconOnly) {
       return `
@@ -1197,11 +1230,15 @@ export class WorkflowBuilder {
     const examplesMenu = this.container.querySelector('#examples-menu');
     if (examplesMenu) {
       examplesMenu.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent document click from closing dropdown
         const item = e.target.closest('[data-example]');
         if (item) {
           const exampleId = item.dataset.example;
-          this._loadExample(exampleId);
-          this._toggleExamplesDropdown(false);
+          this._toggleExamplesDropdown(true);
+          // Small delay to ensure dropdown closes before loading
+          setTimeout(() => {
+            this._loadExample(exampleId);
+          }, 50);
         }
       });
       
@@ -1209,7 +1246,7 @@ export class WorkflowBuilder {
       document.addEventListener('click', (e) => {
         const dropdown = this.container.querySelector('#examples-dropdown');
         if (dropdown && !dropdown.contains(e.target)) {
-          this._toggleExamplesDropdown(false);
+          this._toggleExamplesDropdown(true);
         }
       });
     }
@@ -1382,6 +1419,15 @@ export class WorkflowBuilder {
      * Node created event
      */
     this.drawflow.on('nodeCreated', (nodeId) => {
+      // Set data-type attribute for CSS selectors
+      const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+      if (nodeEl) {
+        const nodeData = this.drawflow.getNodeFromId(nodeId);
+        if (nodeData && nodeData.class) {
+          nodeEl.setAttribute('data-type', nodeData.class);
+        }
+      }
+      
       this._updateStats();
       this._saveToHistory();
       this._triggerChange();
@@ -1407,6 +1453,9 @@ export class WorkflowBuilder {
       this._saveToHistory();
       this._triggerChange();
       this._setStatus('Connection created');
+      
+      // Color connections from condition/if/decision nodes (with delay for DOM update)
+      setTimeout(() => this._colorConditionConnections(), 10);
     });
 
     /**
@@ -1607,6 +1656,53 @@ export class WorkflowBuilder {
     const connCountEl = this.container.querySelector('.connection-count');
     if (nodeCountEl) nodeCountEl.textContent = `Nodes: ${nodeCount}`;
     if (connCountEl) connCountEl.textContent = `Connections: ${connectionCount}`;
+  }
+
+
+  /**
+   * --------------------------------------------------------------------------
+   * PRIVATE: COLOR CONDITION CONNECTIONS
+   * --------------------------------------------------------------------------
+   * 
+   * Colors connections from condition/if/decision nodes:
+   * - output_1 (true branch): Green
+   * - output_2 (false branch): Red
+   * 
+   * --------------------------------------------------------------------------
+   */
+  _colorConditionConnections() {
+    const conditionTypes = ['condition', 'if', 'decision'];
+    const connections = this.container.querySelectorAll('.drawflow .connection');
+    
+    const trueColor = this.conditionTrueColor || '#22C55E';
+    const falseColor = this.conditionFalseColor || '#EF4444';
+    
+    connections.forEach(conn => {
+      const classList = conn.getAttribute('class') || '';
+      const outMatch = classList.match(/node_out_node-(\d+)/);
+      
+      if (outMatch) {
+        const sourceNodeId = outMatch[1];
+        const nodeEl = this.container.querySelector(`#node-${sourceNodeId}`);
+        
+        if (nodeEl) {
+          const nodeType = nodeEl.getAttribute('data-type');
+          
+          if (conditionTypes.includes(nodeType)) {
+            const path = conn.querySelector('.main-path');
+            if (path) {
+              if (classList.includes('output_1')) {
+                path.style.setProperty('stroke', trueColor, 'important');
+                conn.classList.add('condition-true');
+              } else if (classList.includes('output_2')) {
+                path.style.setProperty('stroke', falseColor, 'important');
+                conn.classList.add('condition-false');
+              }
+            }
+          }
+        }
+      }
+    });
   }
 
 
@@ -2014,6 +2110,95 @@ export class WorkflowBuilder {
     return nodeId;
   }
 
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: CREATE NODE (Alias for addNode)
+   * --------------------------------------------------------------------------
+   * 
+   * Alias for addNode() - creates a new node at the specified position.
+   * 
+   * @param {string} type - Node type name
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {Object} data - Initial node data
+   * @returns {number} Node ID
+   * 
+   * --------------------------------------------------------------------------
+   */
+  createNode(type, x = 100, y = 100, data = {}) {
+    return this.addNode(type, x, y, data);
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: REMOVE NODE
+   * --------------------------------------------------------------------------
+   * 
+   * Removes a node from the workflow by ID.
+   * 
+   * @param {number} nodeId - ID of the node to remove
+   * 
+   * --------------------------------------------------------------------------
+   */
+  removeNode(nodeId) {
+    this.drawflow.removeNodeId(`node-${nodeId}`);
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: GET NODE
+   * --------------------------------------------------------------------------
+   * 
+   * Gets a node's data by ID.
+   * 
+   * @param {number} nodeId - ID of the node
+   * @returns {Object} Node data or null
+   * 
+   * --------------------------------------------------------------------------
+   */
+  getNode(nodeId) {
+    try {
+      return this.drawflow.getNodeFromId(nodeId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: GET ALL NODES
+   * --------------------------------------------------------------------------
+   * 
+   * Gets all nodes in the workflow.
+   * 
+   * @returns {Object} Map of node ID to node data
+   * 
+   * --------------------------------------------------------------------------
+   */
+  getNodes() {
+    const data = this.drawflow.export();
+    return data.drawflow?.Home?.data || {};
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: UPDATE NODE DATA
+   * --------------------------------------------------------------------------
+   * 
+   * Updates a node's data.
+   * 
+   * @param {number} nodeId - ID of the node
+   * @param {Object} data - New data to merge
+   * 
+   * --------------------------------------------------------------------------
+   */
+  updateNodeData(nodeId, data) {
+    const node = this.getNode(nodeId);
+    if (node) {
+      this.drawflow.updateNodeDataFromId(nodeId, { ...node.data, ...data });
+    }
+  }
+
 
   /**
    * --------------------------------------------------------------------------
@@ -2133,12 +2318,12 @@ export class WorkflowBuilder {
    * --------------------------------------------------------------------------
    * 
    * Clears all nodes and connections from the workflow.
-   * Asks for confirmation before clearing.
+   * Asks for confirmation before clearing unless skipConfirm is true.
    * 
    * --------------------------------------------------------------------------
    */
-  clear() {
-    if (confirm('Are you sure you want to clear the entire workflow?')) {
+  clear(skipConfirm = false) {
+    const doClear = () => {
       // Clear all groups first
       this.groups.forEach((group, groupId) => this._dissolveGroup(groupId));
       this.groups.clear();
@@ -2149,7 +2334,54 @@ export class WorkflowBuilder {
       this._saveToHistory();
       this._hideProperties();
       this._setStatus('Workflow cleared');
+    };
+    
+    if (skipConfirm) {
+      doClear();
+    } else {
+      this._showConfirmModal('Clear Workflow', 'Are you sure you want to clear the entire workflow? This cannot be undone.', doClear);
     }
+  }
+  
+  /**
+   * --------------------------------------------------------------------------
+   * PRIVATE: SHOW CONFIRMATION MODAL
+   * --------------------------------------------------------------------------
+   */
+  _showConfirmModal(title, message, onConfirm) {
+    const modal = this.container.querySelector('#confirm-modal');
+    if (!modal) {
+      console.error('[FlowKit] Confirm modal not found! Calling callback directly.');
+      if (onConfirm) onConfirm();
+      return;
+    }
+    
+    const titleEl = modal.querySelector('#confirm-modal-title');
+    const messageEl = modal.querySelector('#confirm-modal-message');
+    const cancelBtn = modal.querySelector('[data-action="confirm-cancel"]');
+    const okBtn = modal.querySelector('[data-action="confirm-ok"]');
+    const closeBtn = modal.querySelector('[data-action="close-confirm"]');
+    
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    modal.classList.add('visible');
+    
+    const cleanup = () => {
+      modal.classList.remove('visible');
+      cancelBtn.removeEventListener('click', handleCancel);
+      okBtn.removeEventListener('click', handleOk);
+      closeBtn.removeEventListener('click', handleCancel);
+    };
+    
+    const handleCancel = () => cleanup();
+    const handleOk = () => {
+      cleanup();
+      if (onConfirm) onConfirm();
+    };
+    
+    cancelBtn.addEventListener('click', handleCancel);
+    okBtn.addEventListener('click', handleOk);
+    closeBtn.addEventListener('click', handleCancel);
   }
 
 
@@ -2238,6 +2470,9 @@ export class WorkflowBuilder {
     // Restore node configs after import
     this._restoreImportedNodeConfigs(data);
     
+    // Color condition connections
+    setTimeout(() => this._colorConditionConnections(), 50);
+    
     this._setStatus('Workflow imported');
   }
 
@@ -2256,6 +2491,11 @@ export class WorkflowBuilder {
       Object.entries(nodes).forEach(([nodeId, nodeData]) => {
         const nodeEl = this.container.querySelector(`#node-${nodeId}`);
         
+        // Set data-type attribute for proper styling
+        if (nodeEl && nodeData.class) {
+          nodeEl.setAttribute('data-type', nodeData.class);
+        }
+        
         // Restore node colors
         if (nodeData.data?._nodeColor) {
           if (nodeEl) {
@@ -2269,6 +2509,9 @@ export class WorkflowBuilder {
           this._setupRestoredComment(nodeId, nodeData.data._text);
         }
       });
+      
+      // Re-color condition connections after data-type is set
+      this._colorConditionConnections();
     }, 100);
   }
 
@@ -2496,16 +2739,17 @@ export class WorkflowBuilder {
     if (!this.executor) return;
     
     this.executor.onNodeStart = (nodeId, node) => {
-      console.log(`[Executor] Starting node ${nodeId}: ${node.name}`);
+      // Node execution started
     };
     
     this.executor.onNodeComplete = (nodeId, node, result) => {
-      console.log(`[Executor] Completed node ${nodeId}:`, result);
+      console.log('[Callback] onNodeComplete node:', nodeId, 'result.output:', result?.output);
       this._updateExecutionLog();
+      // Color outgoing connections based on which output was taken
+      this._colorExecutedConnection(nodeId, result?.output || 'output_1');
     };
     
     this.executor.onNodeError = (nodeId, node, error) => {
-      console.error(`[Executor] Error in node ${nodeId}:`, error);
       this._setStatus(`Error in ${node.name}: ${error.message}`);
       this._updateExecutionLog();
     };
@@ -2515,6 +2759,8 @@ export class WorkflowBuilder {
       this._updateExecutionButtons(true);
       this.showExecutionLog();
       this._updateExecutionLog();
+      // Reset connection colors before execution
+      this._resetExecutionConnectionColors();
     };
     
     this.executor.onExecutionComplete = (history, context) => {
@@ -2528,6 +2774,88 @@ export class WorkflowBuilder {
       this._updateExecutionButtons(false);
       this._updateExecutionLog();
     };
+  }
+  
+  /**
+   * Reset all connection colors before execution
+   */
+  _resetExecutionConnectionColors() {
+    const connections = this.container.querySelectorAll('.drawflow .connection');
+    connections.forEach(conn => {
+      conn.classList.remove('exec-taken', 'exec-not-taken');
+      const path = conn.querySelector('.main-path');
+      if (path) {
+        // Reset ALL inline styles that may have been set during execution
+        path.style.removeProperty('stroke');
+        path.style.removeProperty('stroke-width');
+        path.style.removeProperty('filter');
+        path.style.removeProperty('opacity');
+      }
+    });
+    // Re-apply static condition colors
+    this._colorConditionConnections();
+  }
+  
+  /**
+   * Color the connection that was taken during execution
+   */
+  _colorExecutedConnection(nodeId, outputKey) {
+    const conditionTypes = ['condition', 'if', 'decision', 'loop'];
+    const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+    if (!nodeEl) return;
+    
+    const nodeType = nodeEl.getAttribute('data-type');
+    
+    // Only handle branching nodes with 2 outputs
+    if (!conditionTypes.includes(nodeType)) return;
+    
+    // Find ALL connections from this node (try multiple selectors)
+    const connections = this.container.querySelectorAll(
+      `.drawflow .connection.node_out_node-${nodeId}, ` +
+      `.drawflow svg.connection.node_out_node-${nodeId}`
+    );
+    
+    console.log('[Colors] Node', nodeId, 'type:', nodeType, 'outputKey:', outputKey, 'found connections:', connections.length);
+    
+    // Semantic colors for branching nodes
+    const trueColor = '#22C55E';   // Green for TRUE/output_1
+    const falseColor = '#EF4444';  // Red for FALSE/output_2
+    const notTakenColor = '#9CA3AF'; // Gray for not taken
+    
+    connections.forEach(conn => {
+      const classList = conn.getAttribute('class') || '';
+      const path = conn.querySelector('.main-path');
+      if (!path) return;
+      
+      const isTaken = classList.includes(outputKey);
+      const isOutput1 = classList.includes('output_1');
+      const isOutput2 = classList.includes('output_2');
+      
+      console.log('[Colors] Connection class:', classList, 'isTaken:', isTaken, 'outputKey:', outputKey);
+      
+      // Remove any previous condition classes to prevent conflicts
+      conn.classList.remove('condition-true', 'condition-false');
+      
+      if (isTaken) {
+        // Taken path - use semantic color (green for true, red for false)
+        const color = isOutput1 ? trueColor : falseColor;
+        const shadow = isOutput1 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+        path.style.setProperty('stroke', color, 'important');
+        path.style.setProperty('stroke-width', '3', 'important');
+        path.style.setProperty('filter', `drop-shadow(0 0 4px ${shadow})`, 'important');
+        path.style.removeProperty('opacity');
+        conn.classList.add('exec-taken');
+        conn.classList.remove('exec-not-taken');
+      } else {
+        // Not-taken path - dimmed gray
+        path.style.setProperty('stroke', notTakenColor, 'important');
+        path.style.setProperty('stroke-width', '2', 'important');
+        path.style.setProperty('opacity', '0.5', 'important');
+        path.style.removeProperty('filter');
+        conn.classList.add('exec-not-taken');
+        conn.classList.remove('exec-taken');
+      }
+    });
   }
 
   /**
@@ -2641,7 +2969,6 @@ export class WorkflowBuilder {
       this.executor.isRunning = false;
       this._updateExecutionButtons(false);
       this._setStatus(`Completed: ${node.name}`);
-      console.log('Single node result:', result);
       this._updateExecutionLog();
     }).catch(err => {
       console.error('Execution error:', err);
@@ -2880,14 +3207,28 @@ export class WorkflowBuilder {
    * Build config form HTML from schema
    */
   _buildConfigForm(schema, currentConfig, nodeType) {
+    // Always add label field at the top for renaming nodes
+    const labelValue = currentConfig.label || '';
+    const labelField = `
+      <div class="config-field">
+        <label>Node Label</label>
+        <input type="text" name="label" value="${this._escapeHtml(labelValue)}" placeholder="Custom label for this node...">
+        <div class="field-hint">Change the display name of this node</div>
+      </div>
+    `;
+    
     if (!schema || schema.length === 0) {
       return `
-        <div class="config-empty">No predefined options for this node type.</div>
+        ${labelField}
+        <div class="config-empty">No additional options for this node type.</div>
         ${this._buildCustomFieldsSection(currentConfig)}
       `;
     }
     
-    const schemaFields = schema.map(field => {
+    // Filter out label field from schema if already present (avoid duplicate)
+    const filteredSchema = schema.filter(f => f.key !== 'label');
+    
+    const schemaFields = filteredSchema.map(field => {
       const value = currentConfig[field.key] !== undefined ? currentConfig[field.key] : (field.default || '');
       const showIfAttr = field.showIf ? `data-show-if='${JSON.stringify(field.showIf)}'` : '';
       const hint = this._getFieldHint(field);
@@ -2940,7 +3281,7 @@ export class WorkflowBuilder {
       `;
     }).join('');
     
-    return schemaFields + this._buildCustomFieldsSection(currentConfig, schema);
+    return labelField + schemaFields + this._buildCustomFieldsSection(currentConfig, filteredSchema);
   }
   
   /**
@@ -3082,8 +3423,27 @@ export class WorkflowBuilder {
     });
     
     this.setNodeConfig(nodeId, config);
+    
+    // Update visual label if provided
+    if (config.label) {
+      this._updateNodeLabel(nodeId, config.label);
+    }
+    
     this.hideNodeConfigPanel();
     this._setStatus('Node configuration saved');
+  }
+
+  /**
+   * Update a node's visual label
+   */
+  _updateNodeLabel(nodeId, newLabel) {
+    const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+    if (!nodeEl) return;
+    
+    const labelEl = nodeEl.querySelector('.node-label');
+    if (labelEl) {
+      labelEl.textContent = newLabel;
+    }
   }
 
   /**
@@ -3840,7 +4200,7 @@ export class WorkflowBuilder {
   _setupContextMenu() {
     // Preset colors for nodes and connections
     this.presetColors = [
-      { name: 'Blue', value: '#2563EB' },
+      { name: 'Teal', value: '#02514a' },
       { name: 'Green', value: '#10B981' },
       { name: 'Red', value: '#EF4444' },
       { name: 'Purple', value: '#8B5CF6' },
@@ -3874,7 +4234,7 @@ export class WorkflowBuilder {
         <div class="context-submenu" id="node-color-submenu">
           <div class="color-picker-grid">${colorSwatches}</div>
           <div class="color-picker-custom">
-            <input type="color" id="custom-node-color" value="#2563EB">
+            <input type="color" id="custom-node-color" value="#02514a">
             <span>Custom</span>
           </div>
         </div>
@@ -5262,7 +5622,7 @@ export class WorkflowBuilder {
    * PRIVATE: SETUP ADVANCED FEATURES
    * --------------------------------------------------------------------------
    * 
-   * Initializes advanced features like multi-select and snap-to-grid.
+   * Initializes advanced features like multi-select, snap-to-grid, and canvas panning.
    * 
    * --------------------------------------------------------------------------
    */
@@ -5270,6 +5630,97 @@ export class WorkflowBuilder {
     const canvas = this.container.querySelector('#drawflow-canvas');
     const canvasContainer = this.container.querySelector('.workflow-canvas-container');
     if (!canvas || !canvasContainer) return;
+
+    // =========================================================================
+    // CANVAS PANNING - Works with Space+drag, middle mouse, or left-drag on empty area
+    // =========================================================================
+    let isSpacePressed = false;
+    let isPanning = false;
+    let panStartX = 0, panStartY = 0;
+    let canvasStartX = 0, canvasStartY = 0;
+    
+    const onSpaceKeyDown = (e) => {
+      if (e.code === 'Space' && !isSpacePressed) {
+        const isTyping = document.activeElement.tagName === 'INPUT' || 
+                         document.activeElement.tagName === 'TEXTAREA';
+        if (isTyping) return;
+        
+        e.preventDefault();
+        isSpacePressed = true;
+        canvas.style.cursor = 'grab';
+      }
+    };
+    
+    const onSpaceKeyUp = (e) => {
+      if (e.code === 'Space') {
+        isSpacePressed = false;
+        isPanning = false;
+        canvas.style.cursor = '';
+      }
+    };
+    
+    const startPan = (e) => {
+      isPanning = true;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      canvasStartX = this.drawflow.canvas_x;
+      canvasStartY = this.drawflow.canvas_y;
+      canvas.style.cursor = 'grabbing';
+    };
+    
+    const onPanMouseDown = (e) => {
+      const nodeEl = e.target.closest('.drawflow-node');
+      const isOnConnection = e.target.closest('.connection');
+      const isOnInput = e.target.closest('.input');
+      const isOnOutput = e.target.closest('.output');
+      
+      // Pan with spacebar + left click OR middle mouse button (anywhere)
+      if ((isSpacePressed && e.button === 0) || e.button === 1) {
+        e.preventDefault();
+        e.stopPropagation();
+        startPan(e);
+        return;
+      }
+      
+      // Left-click on empty canvas area (not on node, connection, or ports) - enable pan
+      if (e.button === 0 && !nodeEl && !isOnConnection && !isOnInput && !isOnOutput) {
+        const isModifierKey = e.shiftKey || e.ctrlKey || e.metaKey;
+        // Don't pan if modifier key is pressed (that's for selection box)
+        if (!isModifierKey) {
+          startPan(e);
+        }
+      }
+    };
+    
+    const onPanMouseMove = (e) => {
+      if (isPanning) {
+        e.preventDefault();
+        const dx = e.clientX - panStartX;
+        const dy = e.clientY - panStartY;
+        this.drawflow.canvas_x = canvasStartX + dx;
+        this.drawflow.canvas_y = canvasStartY + dy;
+        
+        // Update the transform
+        const precanvas = canvas.querySelector('.drawflow');
+        if (precanvas) {
+          precanvas.style.transform = `translate(${this.drawflow.canvas_x}px, ${this.drawflow.canvas_y}px) scale(${this.drawflow.zoom})`;
+        }
+      }
+    };
+    
+    const onPanMouseUp = () => {
+      if (isPanning) {
+        isPanning = false;
+        canvas.style.cursor = isSpacePressed ? 'grab' : '';
+      }
+    };
+    
+    document.addEventListener('keydown', onSpaceKeyDown);
+    document.addEventListener('keyup', onSpaceKeyUp);
+    // Use capture phase so we handle before Drawflow
+    canvas.addEventListener('mousedown', onPanMouseDown, true);
+    document.addEventListener('mousemove', onPanMouseMove);
+    document.addEventListener('mouseup', onPanMouseUp);
 
     // Selection box for multi-select - now positioned relative to container
     const selectionBox = this.container.querySelector('.selection-box');
@@ -5500,6 +5951,127 @@ export class WorkflowBuilder {
     this._triggerChange();
     this._setStatus(`Node color changed`);
     
+    return this;
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: SET CONNECTION COLOR
+   * --------------------------------------------------------------------------
+   * 
+   * Changes the color of a connection between two nodes.
+   * 
+   * @param {string|number} fromNodeId - Source node ID
+   * @param {string|number} toNodeId - Target node ID
+   * @param {string} color - Hex color value
+   * @param {string} [outputClass='output_1'] - Output class name
+   * @param {string} [inputClass='input_1'] - Input class name
+   * @returns {WorkflowBuilder} - Returns self for chaining
+   * 
+   * --------------------------------------------------------------------------
+   */
+  setConnectionColor(fromNodeId, toNodeId, color, outputClass = 'output_1', inputClass = 'input_1') {
+    const selector = `.connection.node_out_node-${fromNodeId}.node_in_node-${toNodeId}.${outputClass}.${inputClass}`;
+    const connection = this.container.querySelector(selector);
+    
+    if (!connection) {
+      console.warn('[FlowKit] setConnectionColor: Connection not found');
+      return this;
+    }
+    
+    const path = connection.querySelector('.main-path');
+    if (path) {
+      path.style.stroke = color;
+      connection.dataset.customColor = color;
+    }
+    
+    this._saveToHistory();
+    this._triggerChange();
+    this._setStatus('Connection color changed');
+    
+    return this;
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: SET DEFAULT CONNECTION COLOR
+   * --------------------------------------------------------------------------
+   * 
+   * Sets the default color for all new connections.
+   * 
+   * @param {string} color - Hex color value
+   * @returns {WorkflowBuilder} - Returns self for chaining
+   * 
+   * --------------------------------------------------------------------------
+   */
+  setDefaultConnectionColor(color) {
+    this.defaultConnectionColor = color;
+    
+    // Update CSS variable
+    const canvas = this.container.querySelector('#drawflow-canvas');
+    if (canvas) {
+      canvas.style.setProperty('--connection-color', color);
+    }
+    
+    // Update existing connections (except condition connections)
+    const connections = this.container.querySelectorAll('.drawflow .connection:not(.condition-true):not(.condition-false)');
+    connections.forEach(conn => {
+      const path = conn.querySelector('.main-path');
+      if (path && !conn.dataset.customColor) {
+        path.style.stroke = color;
+      }
+    });
+    
+    // Update arrow markers
+    const arrowhead = this.container.querySelector('#arrowhead polygon');
+    const arrowheadHover = this.container.querySelector('#arrowhead-hover polygon');
+    if (arrowhead) arrowhead.setAttribute('fill', color);
+    if (arrowheadHover) arrowheadHover.setAttribute('fill', color);
+    
+    this._setStatus('Default connection color changed');
+    return this;
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: SET CONDITION COLORS
+   * --------------------------------------------------------------------------
+   * 
+   * Sets the colors for condition node branches.
+   * 
+   * @param {string} trueColor - Hex color for true/success branch (output_1)
+   * @param {string} falseColor - Hex color for false/error branch (output_2)
+   * @returns {WorkflowBuilder} - Returns self for chaining
+   * 
+   * --------------------------------------------------------------------------
+   */
+  setConditionColors(trueColor, falseColor) {
+    this.conditionTrueColor = trueColor;
+    this.conditionFalseColor = falseColor;
+    
+    // Update existing condition connections
+    const trueConnections = this.container.querySelectorAll('.drawflow .connection.condition-true');
+    const falseConnections = this.container.querySelectorAll('.drawflow .connection.condition-false');
+    
+    trueConnections.forEach(conn => {
+      const path = conn.querySelector('.main-path');
+      if (path) path.style.stroke = trueColor;
+    });
+    
+    falseConnections.forEach(conn => {
+      const path = conn.querySelector('.main-path');
+      if (path) path.style.stroke = falseColor;
+    });
+    
+    // Update condition node output dots
+    const conditionNodes = this.container.querySelectorAll('.drawflow-node[data-type="condition"], .drawflow-node[data-type="if"], .drawflow-node[data-type="decision"]');
+    conditionNodes.forEach(node => {
+      const outputs = node.querySelectorAll('.output');
+      if (outputs[0]) outputs[0].style.borderColor = trueColor;
+      if (outputs[1]) outputs[1].style.borderColor = falseColor;
+    });
+    
+    this._setStatus('Condition colors updated');
     return this;
   }
 
@@ -6660,7 +7232,7 @@ export class WorkflowBuilder {
    */
   _getGroupColor(groupId) {
     const colors = [
-      '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444',
+      '#02514a', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444',
       '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
     ];
     return colors[(groupId - 1) % colors.length];
@@ -6834,12 +7406,10 @@ export class WorkflowBuilder {
     this.drawflow.on('connectionRemoved', () => this._markUnsaved());
     this.drawflow.on('nodeMoved', () => this._markUnsaved());
     
-    // Save before unload
-    window.addEventListener('beforeunload', (e) => {
+    // Auto-save before unload (silent, no confirmation)
+    window.addEventListener('beforeunload', () => {
       if (this.hasUnsavedChanges) {
         this._saveToStorage();
-        e.preventDefault();
-        e.returnValue = '';
       }
     });
   }
@@ -6856,14 +7426,7 @@ export class WorkflowBuilder {
    * Update save indicator in UI
    */
   _updateSaveIndicator() {
-    const title = this.container.querySelector('.workflow-title h1');
-    if (title) {
-      if (this.hasUnsavedChanges && !title.textContent.includes('•')) {
-        title.textContent = 'FlowKit •';
-      } else if (!this.hasUnsavedChanges) {
-        title.textContent = 'FlowKit';
-      }
-    }
+    // Indicator disabled - keeping the method for API compatibility
   }
 
   /**
@@ -6900,10 +7463,12 @@ export class WorkflowBuilder {
         // Only offer to restore if less than 24 hours old
         if (age < 24 * 60 * 60 * 1000) {
           const timeAgo = hours > 0 ? `${hours}h ago` : 'recently';
-          if (confirm(`Restore unsaved workflow from ${timeAgo}?`)) {
-            this._importWorkflowData(workflow);
+          this._showConfirmModal('Restore Draft', `Restore unsaved workflow from ${timeAgo}?`, () => {
+            this.import(workflow);
+            // Color condition connections after restore
+            setTimeout(() => this._colorConditionConnections(), 100);
             this._setStatus('Draft restored');
-          }
+          });
         }
       }
     } catch (e) {
@@ -7204,11 +7769,11 @@ export class WorkflowBuilder {
     
     const isOpen = menu.classList.contains('visible');
     
-    // forceClose: true = close, false = close, null = toggle
-    if (forceClose === true || forceClose === false || (forceClose === null && isOpen)) {
+    // forceClose: true = close, null = toggle
+    if (forceClose === true || (forceClose === null && isOpen)) {
       menu.classList.remove('visible');
       dropdown.classList.remove('open');
-    } else {
+    } else if (forceClose === null && !isOpen) {
       menu.classList.add('visible');
       dropdown.classList.add('open');
     }
@@ -7226,50 +7791,78 @@ export class WorkflowBuilder {
       return;
     }
     
+    // Track current example and update active state immediately
+    this._currentExample = exampleId;
+    const menuItems = this.container.querySelectorAll('#examples-menu .dropdown-item[data-example]');
+    menuItems.forEach(item => {
+      item.classList.remove('active');
+      if (item.dataset.example === exampleId) {
+        item.classList.add('active');
+      }
+    });
+    
+    const doLoad = () => {
+      // Clear without confirm
+      this.clear(true);
+      
+      // Create nodes
+      const nodeIdMap = {}; // oldId -> newId
+      example.nodes.forEach(node => {
+        const definition = this.nodeRegistry.get(node.type);
+        
+        const id = this.drawflow.addNode(
+          node.type,
+          node.inputs || 1,
+          node.outputs || 1,
+          node.x,
+          node.y,
+          node.type,
+          {},
+          this._createNodeTemplate(node.type, definition)
+        );
+        nodeIdMap[node.id] = id;
+      
+        // Set config
+        if (node.config) {
+          this.setNodeConfig(id, node.config);
+        }
+      });
+      
+      // Create connections
+      example.connections.forEach(conn => {
+        const fromId = nodeIdMap[conn.from];
+        const toId = nodeIdMap[conn.to];
+        if (fromId && toId) {
+          this.drawflow.addConnection(fromId, toId, conn.fromOutput || 'output_1', conn.toInput || 'input_1');
+        }
+      });
+      
+      // Ensure data-type attributes are set on all nodes
+      Object.values(nodeIdMap).forEach(nodeId => {
+        const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+        if (nodeEl) {
+          const nodeData = this.drawflow.getNodeFromId(nodeId);
+          if (nodeData && nodeData.class) {
+            nodeEl.setAttribute('data-type', nodeData.class);
+          }
+        }
+      });
+      
+      // Color condition connections
+      setTimeout(() => this._colorConditionConnections(), 50);
+      
+      this._updateStats();
+      this._saveToHistory();
+      this._setStatus(`Loaded: ${example.name}`);
+    };
+    
     // Confirm if there's existing work
     const nodes = this.drawflow.export()?.drawflow?.Home?.data || {};
     if (Object.keys(nodes).length > 0) {
-      if (!confirm(`Load "${example.name}" example? This will clear your current workflow.`)) {
-        return;
-      }
+      this._showConfirmModal('Load Example', `Load "${example.name}" example? This will clear your current workflow.`, doLoad);
+    } else {
+      doLoad();
     }
-    
-    // Clear and load
-    this.clear();
-    
-    // Create nodes
-    const nodeIdMap = {}; // oldId -> newId
-    example.nodes.forEach(node => {
-      const id = this.drawflow.addNode(
-        node.type,
-        node.inputs || 1,
-        node.outputs || 1,
-        node.x,
-        node.y,
-        node.type,
-        {},
-        this._createNodeTemplate(node.type, this.nodeRegistry.get(node.type))
-      );
-      nodeIdMap[node.id] = id;
-      
-      // Set config
-      if (node.config) {
-        this.setNodeConfig(id, node.config);
-      }
-    });
-    
-    // Create connections
-    example.connections.forEach(conn => {
-      const fromId = nodeIdMap[conn.from];
-      const toId = nodeIdMap[conn.to];
-      if (fromId && toId) {
-        this.drawflow.addConnection(fromId, toId, conn.fromOutput || 'output_1', conn.toInput || 'input_1');
-      }
-    });
-    
-    this._updateStats();
-    this._saveToHistory();
-    this._setStatus(`Loaded: ${example.name}`);
   }
 
   /**
@@ -7365,8 +7958,7 @@ export class WorkflowBuilder {
             initialData: '{"items": [1, 2, 3, 4, 5]}'
           }},
           { id: 2, type: 'loop', x: 400, y: 280, inputs: 1, outputs: 2, config: {
-            loopType: 'array',
-            arrayPath: 'items'
+            source: '{{lastResult.data.items}}'
           }},
           { id: 3, type: 'transform', x: 700, y: 180, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
@@ -7387,7 +7979,7 @@ export class WorkflowBuilder {
         description: 'Send email/Slack based on API data',
         nodes: [
           { id: 1, type: 'trigger', x: 100, y: 280, inputs: 0, outputs: 1 },
-          { id: 2, type: 'http', x: 400, y: 280, inputs: 1, outputs: 1, config: {
+          { id: 2, type: 'http', x: 400, y: 280, inputs: 1, outputs: 2, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/posts/1'
           }},
@@ -7404,8 +7996,8 @@ export class WorkflowBuilder {
         ],
         connections: [
           { from: 1, to: 2 },
-          { from: 2, to: 3 },
-          { from: 2, to: 4 },
+          { from: 2, to: 3, fromOutput: 'output_1' },
+          { from: 2, to: 4, fromOutput: 'output_2' },
           { from: 3, to: 5 },
           { from: 4, to: 5 }
         ]
@@ -7494,8 +8086,7 @@ export class WorkflowBuilder {
             url: 'https://jsonplaceholder.typicode.com/users'
           }},
           { id: 3, type: 'loop', x: 660, y: 280, inputs: 1, outputs: 2, config: {
-            loopType: 'array',
-            arrayPath: 'data'
+            source: '{{lastResult.data}}'
           }},
           { id: 4, type: 'http', x: 940, y: 160, inputs: 1, outputs: 1, config: {
             method: 'GET',
@@ -7586,16 +8177,16 @@ export class WorkflowBuilder {
             url: 'https://jsonplaceholder.typicode.com/posts'
           }},
           { id: 3, type: 'filter', x: 580, y: 280, inputs: 1, outputs: 1, config: {
+            source: '{{lastResult.data}}',
             filterType: 'javascript',
-            code: 'return data.filter(item => item.userId <= 5);'
+            code: 'return item.userId <= 2;'
           }},
           { id: 4, type: 'transform', x: 820, y: 280, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
             code: 'return data.map(p => ({ id: p.id, title: p.title.toUpperCase(), author: p.userId, wordCount: p.body.split(" ").length }));'
           }},
           { id: 5, type: 'loop', x: 1060, y: 280, inputs: 1, outputs: 2, config: {
-            loopType: 'array',
-            arrayPath: 'data'
+            source: '{{lastResult.data}}'
           }},
           { id: 6, type: 'condition', x: 1300, y: 180, inputs: 1, outputs: 2, config: {
             conditionType: 'field',

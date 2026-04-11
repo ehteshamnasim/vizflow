@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>FlowKit</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fafafa;
+      color: #1a1a1a;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+    
+    /* Banner */
+    .banner {
+      background: #1a1a1a;
+      color: #fff;
+      text-align: center;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+    
+    /* Layout */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+      padding-top: 44px;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: #fff;
+      border-right: 1px solid #e5e5e5;
+      position: fixed;
+      top: 44px;
+      left: 0;
+      height: calc(100vh - 44px);
+      overflow-y: auto;
+      padding: 32px 0;
+    }
+    
+    .logo {
+      padding: 0 28px 28px;
+      border-bottom: 1px solid #e5e5e5;
+      margin-bottom: 24px;
+    }
+    
+    .logo h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: #02514a;
+      color: #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    
+    .version {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #666;
+      background: #f0f0f0;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-top: 12px;
+    }
+    
+    .nav-group {
+      margin-bottom: 24px;
+    }
+    
+    .nav-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #888;
+      padding: 0 28px 8px;
+    }
+    
+    .nav-link {
+      display: block;
+      padding: 10px 28px;
+      color: #444;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    
+    .nav-link:hover {
+      background: #f5f5f5;
+      color: #02514a;
+    }
+    
+    .nav-link.active {
+      background: #e8f5f3;
+      color: #02514a;
+      border-left-color: #02514a;
+      font-weight: 600;
+    }
+    
+    /* Main */
+    .main {
+      margin-left: 280px;
+      flex: 1;
+      padding: 48px 64px;
+      max-width: 900px;
+    }
+    
+    .section {
+      margin-bottom: 64px;
+      scroll-margin-top: 80px;
+    }
+    
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #02514a;
+    }
+    
+    h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 40px 0 16px;
+    }
+    
+    h4 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 28px 0 12px;
+    }
+    
+    p {
+      margin-bottom: 16px;
+      color: #444;
+    }
+    
+    ul, ol {
+      padding-left: 24px;
+      margin-bottom: 20px;
+      color: #444;
+    }
+    
+    li {
+      margin-bottom: 10px;
+    }
+    
+    /* Code */
+    pre {
+      background: #1a1a1a;
+      color: #e5e5e5;
+      padding: 24px;
+      border-radius: 12px;
+      overflow-x: auto;
+      margin: 20px 0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    code {
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 13px;
+    }
+    
+    p code, li code, td code {
+      background: #f0f0f0;
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #c41a16;
+    }
+    
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+    
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 14px;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    
+    th, td {
+      padding: 16px 20px;
+      text-align: left;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    
+    th {
+      background: #f8f8f8;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    tr:hover td {
+      background: #fafafa;
+    }
+    
+    /* Cards */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin: 28px 0;
+    }
+    
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e5e5e5;
+      transition: all 0.2s;
+    }
+    
+    .card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 10px;
+    }
+    
+    .card-text {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.6;
+    }
+    
+    /* Node Grid */
+    .nodes {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 24px 0;
+    }
+    
+    .node {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px 16px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e5e5e5;
+      transition: all 0.2s;
+    }
+    
+    .node:hover {
+      border-color: #02514a;
+    }
+    
+    .node-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    
+    .node-type {
+      font-size: 11px;
+      color: #888;
+      font-family: monospace;
+    }
+    
+    /* Shortcuts */
+    .shortcuts {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    
+    .shortcut {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      padding: 14px 18px;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid #e5e5e5;
+    }
+    
+    .shortcut-label {
+      font-size: 14px;
+      color: #444;
+      font-weight: 500;
+    }
+    
+    .keys {
+      display: flex;
+      gap: 6px;
+    }
+    
+    kbd {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 600;
+      color: #1a1a1a;
+      box-shadow: 0 2px 0 #ddd;
+    }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid #e5e5e5;
+      margin-bottom: 24px;
+    }
+    
+    .tab {
+      padding: 14px 24px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #888;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.15s;
+    }
+    
+    .tab:hover {
+      color: #02514a;
+    }
+    
+    .tab.active {
+      color: #02514a;
+      border-bottom-color: #02514a;
+    }
+    
+    .tab-panel {
+      display: none;
+    }
+    
+    .tab-panel.active {
+      display: block;
+    }
+    
+    /* Note box */
+    .note {
+      background: #f0faf9;
+      border-left: 4px solid #02514a;
+      padding: 20px 24px;
+      border-radius: 0 12px 12px 0;
+      margin: 24px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .note-title {
+      font-weight: 700;
+      color: #02514a;
+      margin-bottom: 8px;
+    }
+    
+    .note-text {
+      color: #444;
+      font-size: 14px;
+      margin: 0;
+    }
+    
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #f0f0f0;
+      color: #666;
+    }
+    
+    /* Footer */
+    .footer {
+      margin-top: 80px;
+      padding-top: 32px;
+      border-top: 2px solid #e5e5e5;
+      text-align: center;
+    }
+    
+    .footer p {
+      color: #888;
+      margin-bottom: 20px;
+    }
+    
+    .back-btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background: #02514a;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .back-btn:hover {
+      background: #03665c;
+      transform: translateY(-1px);
+    }
+    
+    /* Responsive */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 32px 24px; }
+      .cards { grid-template-columns: 1fr; }
+      .nodes { grid-template-columns: repeat(2, 1fr); }
+      .shortcuts { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">NPM PACKAGE COMING SOON</div>
+  
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="logo">
+        <h1>
+          <span class="logo-icon">FK</span>
+          FlowKit
+        </h1>
+        <span class="version">v1.0.0</span>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-title">Getting Started</div>
+        <a href="#overview" class="nav-link active">Overview</a>
+        <a href="#installation" class="nav-link">Installation</a>
+        <a href="#quickstart" class="nav-link">Quick Start</a>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-title">API Reference</div>
+        <a href="#builder" class="nav-link">WorkflowBuilder</a>
+        <a href="#methods" class="nav-link">Methods</a>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-title">Nodes</div>
+        <a href="#nodes" class="nav-link">Node Types</a>
+        <a href="#executors" class="nav-link">Executors</a>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-title">Features</div>
+        <a href="#shortcuts" class="nav-link">Keyboard Shortcuts</a>
+        <a href="#variables" class="nav-link">Variables</a>
+        <a href="#custom" class="nav-link">Custom Nodes</a>
+        <a href="#styling" class="nav-link">Connection Styling</a>
+        <a href="#events" class="nav-link">Events</a>
+        <a href="#examples" class="nav-link">Examples</a>
+      </div>
+    </nav>
+    
+    <main class="main">
+      <section id="overview" class="section">
+        <h2>Overview</h2>
+        <p>FlowKit is a powerful visual workflow builder and execution engine for the browser. Create, edit, test, and run automation workflows through an intuitive drag-and-drop interface with real-time execution feedback.</p>
+        
+        <div class="cards">
+          <div class="card">
+            <div class="card-title">Visual Builder</div>
+            <div class="card-text">Drag-and-drop interface with 70+ node types. Connect nodes visually, configure properties in side panels, and organize with grouping.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Execution Engine</div>
+            <div class="card-text">Run complete workflows or test individual nodes. Real-time state visualization, execution logs, and variable inspection.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Extensible</div>
+            <div class="card-text">Register custom node types with your own icons, fields, and logic. Create custom executors for specialized business requirements.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Portable</div>
+            <div class="card-text">Export workflows as JSON for storage/sharing, Mermaid diagrams for documentation, or PNG images for presentations.</div>
+          </div>
+        </div>
+        
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>70+ built-in node types</strong> - Triggers, actions, conditions, loops, HTTP, email, Slack, AWS, and more</li>
+          <li><strong>15 specialized executors</strong> - Each node type has a dedicated executor with validation and configuration</li>
+          <li><strong>Real-time execution</strong> - Watch workflows run with visual state indicators (pending, running, success, error)</li>
+          <li><strong>Variable interpolation</strong> - Use <code>{{lastResult.data}}</code> syntax to pass data between nodes</li>
+          <li><strong>Full editing suite</strong> - Undo/redo (50 levels), copy/paste, multi-select, duplicate, group nodes</li>
+          <li><strong>Navigation aids</strong> - Minimap, zoom controls, fit-to-view, pan with space+drag</li>
+          <li><strong>Multiple exports</strong> - JSON (for import), Mermaid (for docs), PNG image (for sharing)</li>
+          <li><strong>Customizable canvas</strong> - Dot/grid/line patterns, light/dark themes, snap-to-grid, animated edges</li>
+          <li><strong>Condition branch colors</strong> - Green for true path, red for false path on condition nodes</li>
+        </ul>
+        
+        <div class="note">
+          <div class="note-title">Browser Support</div>
+          <p class="note-text">FlowKit works in all modern browsers (Chrome, Firefox, Safari, Edge). No server required - runs entirely in the browser.</p>
+        </div>
+      </section>
+      
+      <section id="installation" class="section">
+        <h2>Installation</h2>
+        
+        <h4>NPM</h4>
+        <pre><code>npm install flowkit</code></pre>
+        
+        <h4>CDN</h4>
+        <pre><code>&lt;script src="https://unpkg.com/flowkit/dist/flowkit.umd.js"&gt;&lt;/script&gt;</code></pre>
+        
+        <h4>ES Module</h4>
+        <pre><code>import { WorkflowBuilder, WorkflowExecutor } from 'flowkit';</code></pre>
+      </section>
+      
+      <section id="quickstart" class="section">
+        <h2>Quick Start</h2>
+        <pre><code>import { WorkflowBuilder } from 'flowkit';
+
+// Initialize builder
+const container = document.getElementById('app');
+const builder = new WorkflowBuilder(container, {
+  theme: 'light',
+  background: 'dots',
+  minimap: true
+});
+
+// Add nodes
+builder.addNode('trigger', 100, 100);
+builder.addNode('action', 300, 100);
+builder.addNode('end', 500, 100);
+
+// Connect nodes
+builder.connect('1', '2');
+builder.connect('2', '3');
+
+// Execute workflow
+await builder.runWorkflow();</code></pre>
+      </section>
+      
+      <section id="builder" class="section">
+        <h2>WorkflowBuilder</h2>
+        <p>The main class for creating and managing visual workflows.</p>
+        
+        <h3>Constructor Options</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>theme</code></td>
+              <td><span class="badge">string</span></td>
+              <td>light</td>
+              <td>Color theme: 'light' or 'dark'</td>
+            </tr>
+            <tr>
+              <td><code>mode</code></td>
+              <td><span class="badge">string</span></td>
+              <td>edit</td>
+              <td>Mode: 'edit' (full editing) or 'view' (read-only)</td>
+            </tr>
+            <tr>
+              <td><code>nodes</code></td>
+              <td><span class="badge">array</span></td>
+              <td>['trigger', 'action', ...]</td>
+              <td>Array of node type names to enable</td>
+            </tr>
+            <tr>
+              <td><code>background</code></td>
+              <td><span class="badge">string</span></td>
+              <td>dots</td>
+              <td>Canvas pattern: 'none', 'dots', 'lines', 'grid'</td>
+            </tr>
+            <tr>
+              <td><code>edgeType</code></td>
+              <td><span class="badge">string</span></td>
+              <td>bezier</td>
+              <td>Connection style: 'bezier', 'straight', 'step'</td>
+            </tr>
+            <tr>
+              <td><code>minimap</code></td>
+              <td><span class="badge">boolean</span></td>
+              <td>true</td>
+              <td>Show minimap navigation panel</td>
+            </tr>
+            <tr>
+              <td><code>snapToGrid</code></td>
+              <td><span class="badge">boolean</span></td>
+              <td>false</td>
+              <td>Snap nodes to grid when dragging</td>
+            </tr>
+            <tr>
+              <td><code>gridSize</code></td>
+              <td><span class="badge">number</span></td>
+              <td>20</td>
+              <td>Grid size in pixels for snapping</td>
+            </tr>
+            <tr>
+              <td><code>animatedEdges</code></td>
+              <td><span class="badge">boolean</span></td>
+              <td>false</td>
+              <td>Animate edges with flowing dots</td>
+            </tr>
+            <tr>
+              <td><code>showArrows</code></td>
+              <td><span class="badge">boolean</span></td>
+              <td>true</td>
+              <td>Show arrow markers on connection ends</td>
+            </tr>
+            <tr>
+              <td><code>customNodes</code></td>
+              <td><span class="badge">object</span></td>
+              <td>{}</td>
+              <td>Custom node type definitions</td>
+            </tr>
+            <tr>
+              <td><code>onSave</code></td>
+              <td><span class="badge">function</span></td>
+              <td>null</td>
+              <td>Callback when workflow is saved</td>
+            </tr>
+            <tr>
+              <td><code>onChange</code></td>
+              <td><span class="badge">function</span></td>
+              <td>null</td>
+              <td>Callback fired on any workflow change</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Example with All Options</h4>
+        <pre><code>const builder = new WorkflowBuilder('#app', {
+  theme: 'dark',
+  mode: 'edit',
+  nodes: ['trigger', 'action', 'condition', 'email', 'http'],
+  background: 'grid',
+  edgeType: 'bezier',
+  minimap: true,
+  snapToGrid: true,
+  gridSize: 20,
+  animatedEdges: true,
+  showArrows: true,
+  customNodes: {
+    myNode: {
+      label: 'My Custom Node',
+      icon: '⭐',
+      category: 'custom',
+      inputs: 1,
+      outputs: 1,
+      fields: []
+    }
+  },
+  onSave: (data) => console.log('Saved:', data),
+  onChange: (data) => console.log('Changed:', data)
+});</code></pre>
+      </section>
+      
+      <section id="methods" class="section">
+        <h2>Methods</h2>
+        
+        <div class="tabs">
+          <button class="tab active" data-tab="m-nodes">Nodes</button>
+          <button class="tab" data-tab="m-edit">Editing</button>
+          <button class="tab" data-tab="m-exec">Execution</button>
+          <button class="tab" data-tab="m-io">Import/Export</button>
+          <button class="tab" data-tab="m-style">Styling</button>
+        </div>
+        
+        <div id="m-nodes" class="tab-panel active">
+          <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>addNode(type, x, y)</code></td><td>Add a node at position. Returns node ID.</td></tr>
+              <tr><td><code>removeNode(nodeId)</code></td><td>Remove a node by ID.</td></tr>
+              <tr><td><code>getNode(nodeId)</code></td><td>Get node data by ID.</td></tr>
+              <tr><td><code>getNodes()</code></td><td>Get all nodes as array.</td></tr>
+              <tr><td><code>connect(fromId, toId)</code></td><td>Create connection between two nodes.</td></tr>
+              <tr><td><code>registerNode(name, def)</code></td><td>Register a custom node type.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="m-edit" class="tab-panel">
+          <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>undo()</code></td><td>Undo last action</td></tr>
+              <tr><td><code>redo()</code></td><td>Redo undone action</td></tr>
+              <tr><td><code>clear()</code></td><td>Clear entire workflow</td></tr>
+              <tr><td><code>copySelected()</code></td><td>Copy selected nodes</td></tr>
+              <tr><td><code>paste()</code></td><td>Paste copied nodes</td></tr>
+              <tr><td><code>deleteSelected()</code></td><td>Delete selected nodes</td></tr>
+              <tr><td><code>zoomIn() / zoomOut()</code></td><td>Change zoom level</td></tr>
+              <tr><td><code>fitView()</code></td><td>Fit all nodes in view</td></tr>
+              <tr><td><code>groupSelected()</code></td><td>Group selected nodes together</td></tr>
+              <tr><td><code>ungroupSelected()</code></td><td>Ungroup selected nodes</td></tr>
+              <tr><td><code>setTheme(theme)</code></td><td>Set 'light' or 'dark' theme</td></tr>
+              <tr><td><code>setMode(mode)</code></td><td>Set 'edit' or 'view' mode</td></tr>
+              <tr><td><code>toggleMinimap()</code></td><td>Show/hide minimap panel</td></tr>
+              <tr><td><code>toggleSnap()</code></td><td>Toggle snap to grid</td></tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="m-exec" class="tab-panel">
+          <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>runWorkflow()</code></td><td>Execute entire workflow</td></tr>
+              <tr><td><code>runFromNode(nodeId)</code></td><td>Run from specific node</td></tr>
+              <tr><td><code>runSingleNode(nodeId)</code></td><td>Test single node</td></tr>
+              <tr><td><code>pauseWorkflow()</code></td><td>Pause execution</td></tr>
+              <tr><td><code>stopWorkflow()</code></td><td>Stop execution</td></tr>
+              <tr><td><code>resetWorkflow()</code></td><td>Reset execution state</td></tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="m-io" class="tab-panel">
+          <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>export()</code></td><td>Returns workflow data object</td></tr>
+              <tr><td><code>import(data)</code></td><td>Import workflow from data</td></tr>
+              <tr><td><code>exportWorkflow()</code></td><td>Download as JSON file</td></tr>
+              <tr><td><code>exportAsImage()</code></td><td>Export as PNG image</td></tr>
+              <tr><td><code>validate()</code></td><td>Validate workflow structure</td></tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="m-style" class="tab-panel">
+          <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>setNodeColor(nodeId, color)</code></td><td>Set color of a specific node</td></tr>
+              <tr><td><code>setConnectionColor(from, to, color)</code></td><td>Set color of a specific connection</td></tr>
+              <tr><td><code>setDefaultConnectionColor(color)</code></td><td>Set default color for all connections</td></tr>
+              <tr><td><code>setConditionColors(true, false)</code></td><td>Set colors for condition branches</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      
+      <section id="nodes" class="section">
+        <h2>Node Types</h2>
+        <p>70+ built-in node types organized into categories. Each node can be dragged from the sidebar onto the canvas.</p>
+        
+        <h3>Core Nodes</h3>
+        <div class="nodes">
+          <div class="node"><div class="node-name">Trigger</div><div class="node-type">trigger</div></div>
+          <div class="node"><div class="node-name">Action</div><div class="node-type">action</div></div>
+          <div class="node"><div class="node-name">Condition</div><div class="node-type">condition</div></div>
+          <div class="node"><div class="node-name">Loop</div><div class="node-type">loop</div></div>
+          <div class="node"><div class="node-name">Delay</div><div class="node-type">delay</div></div>
+          <div class="node"><div class="node-name">Transform</div><div class="node-type">transform</div></div>
+          <div class="node"><div class="node-name">Filter</div><div class="node-type">filter</div></div>
+          <div class="node"><div class="node-name">End</div><div class="node-type">end</div></div>
+        </div>
+        
+        <h3>Integration Nodes</h3>
+        <div class="nodes">
+          <div class="node"><div class="node-name">HTTP</div><div class="node-type">http</div></div>
+          <div class="node"><div class="node-name">API</div><div class="node-type">api</div></div>
+          <div class="node"><div class="node-name">Webhook</div><div class="node-type">webhook</div></div>
+          <div class="node"><div class="node-name">Database</div><div class="node-type">database</div></div>
+          <div class="node"><div class="node-name">Email</div><div class="node-type">email</div></div>
+          <div class="node"><div class="node-name">Slack</div><div class="node-type">slack</div></div>
+          <div class="node"><div class="node-name">AWS</div><div class="node-type">aws</div></div>
+          <div class="node"><div class="node-name">Docker</div><div class="node-type">docker</div></div>
+        </div>
+        
+        <h3>Condition Node (Special)</h3>
+        <p>Condition nodes have <strong>two outputs</strong> with automatic color coding:</p>
+        <ul>
+          <li><strong>Output 1 (True/Yes):</strong> <span style="color: #22C55E;">Green</span> - followed when condition evaluates to true</li>
+          <li><strong>Output 2 (False/No):</strong> <span style="color: #EF4444;">Red</span> - followed when condition evaluates to false</li>
+        </ul>
+        <p>The output dots and connection lines are automatically colored to visually indicate the branch direction.</p>
+        
+        <div class="note">
+          <div class="note-title">Condition Expression</div>
+          <div class="note-text">
+            Use JavaScript expressions in condition nodes:
+            <br><code>{{lastResult.data.status}} == 'active'</code>
+            <br><code>{{lastResult.data.count}} > 10</code>
+            <br><code>{{lastResult.data.items}}.length > 0</code>
+          </div>
+        </div>
+      </section>
+      
+      <section id="executors" class="section">
+        <h2>Executors</h2>
+        <p>Each node type is handled by a specialized executor with specific configuration options. Executors process nodes during workflow execution.</p>
+        
+        <table>
+          <thead>
+            <tr><th>Executor</th><th>Node Types</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>TriggerExecutor</td><td>trigger, start, schedule, webhook</td><td>Workflow entry points. Sets initial variables and context.</td></tr>
+            <tr><td>ActionExecutor</td><td>action, process, task</td><td>General actions: HTTP calls, code execution, logging, set variables.</td></tr>
+            <tr><td>ConditionExecutor</td><td>condition, if, decision, switch</td><td>Branching logic. Evaluates expressions and routes to output_1 (true) or output_2 (false).</td></tr>
+            <tr><td>LoopExecutor</td><td>loop, foreach, while</td><td>Iterate over arrays. Provides {{item}} and {{index}} variables.</td></tr>
+            <tr><td>TransformExecutor</td><td>transform, map, merge, split</td><td>Data transformation: map, filter, reduce, merge objects, split strings.</td></tr>
+            <tr><td>FilterExecutor</td><td>filter</td><td>Filter arrays based on conditions.</td></tr>
+            <tr><td>DelayExecutor</td><td>delay, wait, sleep</td><td>Pause execution for specified duration.</td></tr>
+            <tr><td>HttpExecutor</td><td>http, api, request</td><td>Make HTTP/HTTPS requests. Supports all methods, headers, body, auth.</td></tr>
+            <tr><td>EmailExecutor</td><td>email, sendmail</td><td>Send emails with to, subject, body, attachments.</td></tr>
+            <tr><td>DatabaseExecutor</td><td>database, sql, query</td><td>Execute database queries (simulated in browser).</td></tr>
+            <tr><td>SlackExecutor</td><td>slack, notification</td><td>Send Slack messages to channels.</td></tr>
+            <tr><td>AwsExecutor</td><td>aws, s3, lambda</td><td>AWS service calls (S3, Lambda, SQS).</td></tr>
+            <tr><td>DockerExecutor</td><td>docker, container</td><td>Docker operations (simulated).</td></tr>
+            <tr><td>CodeExecutor</td><td>code, script, function</td><td>Execute JavaScript code with access to context.</td></tr>
+            <tr><td>EndExecutor</td><td>end, stop, terminate</td><td>Workflow termination. Returns final result.</td></tr>
+          </tbody>
+        </table>
+        
+        <h3>Executor Result Structure</h3>
+        <p>Every executor returns a consistent result object:</p>
+        <pre><code>{
+  success: true,              // Whether execution succeeded
+  data: { ... },              // Result data (varies by executor)
+  output: 'output_1',         // Which output to follow (for conditions)
+  error: null,                // Error message if failed
+  nextNodes: ['2']            // IDs of next nodes to execute
+}</code></pre>
+        
+        <h3>Custom Executor</h3>
+        <p>Register a custom executor for your node type:</p>
+        <pre><code>// Register custom executor
+builder.registerExecutor('myNode', async (node, context) => {
+  const config = node.data;
+  
+  // Access previous results
+  const lastResult = context.variables.lastResult;
+  
+  // Do work...
+  const result = await myCustomLogic(config.option);
+  
+  return {
+    success: true,
+    data: result
+  };
+});</code></pre>
+      </section>
+      
+      <section id="shortcuts" class="section">
+        <h2>Keyboard Shortcuts</h2>
+        
+        <div class="shortcuts">
+          <div class="shortcut"><span class="shortcut-label">Undo</span><div class="keys"><kbd>Ctrl</kbd><kbd>Z</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Redo</span><div class="keys"><kbd>Ctrl</kbd><kbd>Y</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Delete</span><div class="keys"><kbd>Delete</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Copy</span><div class="keys"><kbd>Ctrl</kbd><kbd>C</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Paste</span><div class="keys"><kbd>Ctrl</kbd><kbd>V</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Duplicate</span><div class="keys"><kbd>Ctrl</kbd><kbd>D</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Select All</span><div class="keys"><kbd>Ctrl</kbd><kbd>A</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Save</span><div class="keys"><kbd>Ctrl</kbd><kbd>S</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Group/Ungroup</span><div class="keys"><kbd>Ctrl</kbd><kbd>G</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Pan Canvas</span><div class="keys"><kbd>Space</kbd><kbd>Drag</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Multi-Select</span><div class="keys"><kbd>Shift</kbd><kbd>Click</kbd></div></div>
+          <div class="shortcut"><span class="shortcut-label">Deselect</span><div class="keys"><kbd>Escape</kbd></div></div>
+        </div>
+      </section>
+      
+      <section id="variables" class="section">
+        <h2>Variable Interpolation</h2>
+        <p>Use <code>{{variable}}</code> syntax to insert dynamic values into any field.</p>
+        
+        <table>
+          <thead><tr><th>Variable</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>{{lastResult}}</code></td><td>Full result of previous node</td></tr>
+            <tr><td><code>{{lastResult.data}}</code></td><td>Data from previous node</td></tr>
+            <tr><td><code>{{lastResult.data.field}}</code></td><td>Specific field from result</td></tr>
+            <tr><td><code>{{node_1}}</code></td><td>Result of node with ID 1</td></tr>
+            <tr><td><code>{{item}}</code></td><td>Current item in loop</td></tr>
+            <tr><td><code>{{index}}</code></td><td>Current index in loop</td></tr>
+          </tbody>
+        </table>
+        
+        <h4>Examples</h4>
+        <pre><code>// In HTTP URL
+"https://api.example.com/users/{{lastResult.data.id}}"
+
+// In condition
+"{{lastResult.data.status}} == 'active'"
+
+// In email body
+"Hello {{lastResult.data.name}}, your order is ready."</code></pre>
+      </section>
+      
+      <section id="custom" class="section">
+        <h2>Custom Nodes</h2>
+        
+        <h4>Register a Custom Node</h4>
+        <pre><code>builder.registerNode('myNode', {
+  label: 'My Custom Node',
+  icon: '&lt;svg&gt;...&lt;/svg&gt;',
+  color: '#FF5733',
+  inputs: 1,
+  outputs: 2,
+  fields: [
+    { name: 'option', label: 'Option', type: 'select',
+      options: [
+        { value: 'a', label: 'Option A' },
+        { value: 'b', label: 'Option B' }
+      ]
+    }
+  ]
+});</code></pre>
+        
+        <h4>Field Types</h4>
+        <table>
+          <tr><td><code>text</code></td><td>Single line text input</td></tr>
+          <tr><td><code>textarea</code></td><td>Multi-line text</td></tr>
+          <tr><td><code>number</code></td><td>Numeric input</td></tr>
+          <tr><td><code>select</code></td><td>Dropdown with options</td></tr>
+          <tr><td><code>checkbox</code></td><td>Boolean toggle</td></tr>
+          <tr><td><code>json</code></td><td>JSON editor</td></tr>
+          <tr><td><code>code</code></td><td>Code editor</td></tr>
+        </table>
+      </section>
+      
+      <section id="styling" class="section">
+        <h2>Connection Styling</h2>
+        <p>Customize the appearance of connections and nodes programmatically.</p>
+        
+        <h3>Default Connection Color</h3>
+        <p>Set the default color for all connections:</p>
+        <pre><code>// Set default connection color (teal)
+builder.setDefaultConnectionColor('#02514a');
+
+// Set to custom color
+builder.setDefaultConnectionColor('#FF5733');</code></pre>
+        
+        <h3>Individual Connection Color</h3>
+        <p>Change color of a specific connection:</p>
+        <pre><code>// Set connection color between node 1 and node 2
+builder.setConnectionColor(1, 2, '#8B5CF6');
+
+// With specific output/input classes
+builder.setConnectionColor(1, 2, '#EC4899', 'output_1', 'input_1');</code></pre>
+        
+        <h3>Condition Node Colors</h3>
+        <p>Condition nodes (condition, if, decision) have two outputs with automatic coloring:</p>
+        <ul>
+          <li><strong>Output 1 (True/Success)</strong>: <span style="color:#22C55E">Green (#22C55E)</span> by default</li>
+          <li><strong>Output 2 (False/Error)</strong>: <span style="color:#EF4444">Red (#EF4444)</span> by default</li>
+        </ul>
+        
+        <p>Customize condition branch colors:</p>
+        <pre><code>// Set custom colors for condition branches
+builder.setConditionColors('#10B981', '#F97316');
+// First param: true/success color (output_1)
+// Second param: false/error color (output_2)</code></pre>
+        
+        <h3>Node Color</h3>
+        <p>Change the color of individual nodes:</p>
+        <pre><code>// Set node color
+builder.setNodeColor(nodeId, '#FF5733');</code></pre>
+        
+        <div class="note">
+          <div class="note-title">Condition Node Behavior</div>
+          <div class="note-text">
+            When a condition evaluates to <code>true</code>, execution follows the green output (output_1).
+            When it evaluates to <code>false</code>, execution follows the red output (output_2).
+            The output dots and connection lines are automatically colored to indicate the branch direction.
+          </div>
+        </div>
+      </section>
+      
+      <section id="events" class="section">
+        <h2>Events</h2>
+        <p>Listen to workflow events for integration with your application.</p>
+        
+        <h3>Using Callbacks</h3>
+        <pre><code>const builder = new WorkflowBuilder('#app', {
+  onChange: (data) => {
+    console.log('Workflow changed:', data);
+    // Auto-save, validation, etc.
+  },
+  onSave: (data) => {
+    console.log('Workflow saved:', data);
+    // Send to server, show notification, etc.
+  }
+});</code></pre>
+        
+        <h3>Available Events</h3>
+        <table>
+          <thead><tr><th>Event</th><th>Description</th><th>Data</th></tr></thead>
+          <tbody>
+            <tr><td><code>onChange</code></td><td>Fired on any workflow change</td><td>Full workflow data object</td></tr>
+            <tr><td><code>onSave</code></td><td>Fired when Ctrl+S or Save clicked</td><td>Full workflow data object</td></tr>
+            <tr><td><code>nodeCreated</code></td><td>When a node is added</td><td>Node ID and type</td></tr>
+            <tr><td><code>nodeRemoved</code></td><td>When a node is deleted</td><td>Node ID</td></tr>
+            <tr><td><code>connectionCreated</code></td><td>When nodes are connected</td><td>Source and target IDs</td></tr>
+          </tbody>
+        </table>
+        
+        <h3>Drawflow Events</h3>
+        <p>Access underlying Drawflow events for advanced control:</p>
+        <pre><code>// Access Drawflow instance
+builder.drawflow.on('nodeCreated', (id) => {
+  console.log('Node created:', id);
+});
+
+builder.drawflow.on('connectionCreated', ({ output_id, input_id }) => {
+  console.log('Connected:', output_id, '->', input_id);
+});
+
+builder.drawflow.on('nodeMoved', (id) => {
+  console.log('Node moved:', id);
+});</code></pre>
+      </section>
+      
+      <section id="examples" class="section">
+        <h2>Examples</h2>
+        
+        <h3>Simple Trigger-Action Flow</h3>
+        <pre><code>const builder = new WorkflowBuilder('#app');
+
+// Add nodes
+const triggerId = builder.addNode('trigger', 100, 150);
+const actionId = builder.addNode('http', 350, 150);
+const endId = builder.addNode('end', 600, 150);
+
+// Connect: trigger -> action -> end
+builder.connect(triggerId, actionId);
+builder.connect(actionId, endId);
+
+// Run workflow
+await builder.runWorkflow();</code></pre>
+        
+        <h3>Conditional Branching</h3>
+        <pre><code>const builder = new WorkflowBuilder('#app');
+
+// Create nodes
+const trigger = builder.addNode('trigger', 100, 200);
+const condition = builder.addNode('condition', 350, 200);
+const successAction = builder.addNode('email', 600, 100);  // True path
+const failAction = builder.addNode('slack', 600, 300);      // False path
+const end = builder.addNode('end', 850, 200);
+
+// Connect
+builder.connect(trigger, condition);
+builder.connect(condition, successAction);  // Green (output_1)
+builder.connect(condition, failAction);     // Red (output_2)
+builder.connect(successAction, end);
+builder.connect(failAction, end);
+
+// Configure condition
+builder.updateNodeData(condition, {
+  expression: '{{lastResult.data.value}} > 100'
+});</code></pre>
+        
+        <h3>Loop Over Items</h3>
+        <pre><code>const builder = new WorkflowBuilder('#app');
+
+const trigger = builder.addNode('trigger', 100, 200);
+const loop = builder.addNode('loop', 350, 200);
+const action = builder.addNode('action', 600, 200);
+const end = builder.addNode('end', 850, 200);
+
+builder.connect(trigger, loop);
+builder.connect(loop, action);
+builder.connect(action, end);
+
+// Configure loop
+builder.updateNodeData(loop, {
+  items: '[1, 2, 3, 4, 5]'
+});
+
+// In the action, access current item
+builder.updateNodeData(action, {
+  message: 'Processing item: {{item}}, index: {{index}}'
+});</code></pre>
+      </section>
+      
+      <div class="footer">
+        <p>FlowKit v1.0.0</p>
+        <a href="/" class="back-btn">Back to FlowKit</a>
+      </div>
+    </main>
+  </div>
+  
+  <script>
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const id = tab.dataset.tab;
+        tab.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+      });
+    });
+    
+    // Active nav
+    const navLinks = document.querySelectorAll('.nav-link');
+    const updateNav = () => {
+      let current = '';
+      document.querySelectorAll('.section').forEach(s => {
+        if (window.scrollY >= s.offsetTop - 100) current = s.id;
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+      });
+    };
+    window.addEventListener('scroll', updateNav);
+    
+    // Smooth scroll
+    navLinks.forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector(link.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  </script>
+</body>
+</html>

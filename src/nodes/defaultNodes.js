@@ -156,7 +156,7 @@ export const defaultNodeTypes = {
   // Simple shapes (Mermaid-style, no fields)
   start: { label: 'Start', icon: icons.play, color: '#22C55E', inputs: 0, outputs: 1, fields: [] },
   stop: { label: 'Stop', icon: icons.stop, color: '#EF4444', inputs: 1, outputs: 0, fields: [] },
-  process: { label: 'Process', icon: icons.terminal, color: '#3B82F6', inputs: 1, outputs: 1, fields: [] },
+  process: { label: 'Process', icon: icons.terminal, color: '#02514a', inputs: 1, outputs: 1, fields: [] },
   decision: { label: 'Decision', icon: icons.branch, color: '#F59E0B', inputs: 1, outputs: 2, fields: [] },
   data: { label: 'Data', icon: icons.database, color: '#8B5CF6', inputs: 1, outputs: 1, fields: [] },
   document: { label: 'Document', icon: icons.file, color: '#6B7280', inputs: 1, outputs: 1, fields: [] },
@@ -169,7 +169,7 @@ export const defaultNodeTypes = {
   icon: { label: 'Icon', icon: icons.icon, color: '#A855F7', inputs: 1, outputs: 1, fields: [{ name: 'name', label: 'Icon Name', type: 'text', default: '' }] },
   
   // Shape nodes (flowchart symbols) - iconOnly mode for big icon display
-  circle: { label: 'Circle', icon: icons.circle, color: '#3B82F6', inputs: 1, outputs: 1, fields: [], iconOnly: true },
+  circle: { label: 'Circle', icon: icons.circle, color: '#02514a', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   square: { label: 'Square', icon: icons.square, color: '#6366F1', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   diamond: { label: 'Diamond', icon: icons.diamond, color: '#F59E0B', inputs: 1, outputs: 2, fields: [], iconOnly: true },
   hexagon: { label: 'Hexagon', icon: icons.hexagon, color: '#8B5CF6', inputs: 1, outputs: 1, fields: [], iconOnly: true },
@@ -181,7 +181,7 @@ export const defaultNodeTypes = {
   success: { label: 'Success', icon: icons.check, color: '#22C55E', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   error: { label: 'Error', icon: icons.x, color: '#EF4444', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   warning: { label: 'Warning', icon: icons.alert, color: '#F59E0B', inputs: 1, outputs: 1, fields: [], iconOnly: true },
-  info: { label: 'Info', icon: icons.info, color: '#3B82F6', inputs: 1, outputs: 1, fields: [], iconOnly: true },
+  info: { label: 'Info', icon: icons.info, color: '#02514a', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   notification: { label: 'Notification', icon: icons.bell, color: '#F97316', inputs: 1, outputs: 1, fields: [{ name: 'message', label: 'Message', type: 'text', default: '' }] },
   
   // People/User nodes
@@ -192,7 +192,7 @@ export const defaultNodeTypes = {
   download: { label: 'Download', icon: icons.download, color: '#10B981', inputs: 1, outputs: 1, fields: [{ name: 'url', label: 'URL', type: 'text', default: '' }] },
   upload: { label: 'Upload', icon: icons.upload, color: '#0EA5E9', inputs: 1, outputs: 1, fields: [{ name: 'destination', label: 'Destination', type: 'text', default: '' }] },
   search: { label: 'Search', icon: icons.search, color: '#6366F1', inputs: 1, outputs: 1, fields: [{ name: 'query', label: 'Query', type: 'text', default: '' }] },
-  link: { label: 'Link', icon: icons.link, color: '#3B82F6', inputs: 1, outputs: 1, fields: [{ name: 'url', label: 'URL', type: 'text', default: '' }] },
+  link: { label: 'Link', icon: icons.link, color: '#02514a', inputs: 1, outputs: 1, fields: [{ name: 'url', label: 'URL', type: 'text', default: '' }] },
   folder: { label: 'Folder', icon: icons.folder, color: '#F59E0B', inputs: 1, outputs: 1, fields: [{ name: 'path', label: 'Path', type: 'text', default: '' }] },
   trash: { label: 'Delete', icon: icons.trash, color: '#EF4444', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   edit: { label: 'Edit', icon: icons.edit, color: '#8B5CF6', inputs: 1, outputs: 1, fields: [], iconOnly: true },
@@ -210,7 +210,7 @@ export const defaultNodeTypes = {
   lock: { label: 'Lock', icon: icons.lock, color: '#EF4444', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   unlock: { label: 'Unlock', icon: icons.unlock, color: '#22C55E', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   key: { label: 'Key', icon: icons.key, color: '#F59E0B', inputs: 1, outputs: 1, fields: [{ name: 'key', label: 'API Key', type: 'text', default: '' }] },
-  globe: { label: 'Globe', icon: icons.globe, color: '#3B82F6', inputs: 1, outputs: 1, fields: [], iconOnly: true },
+  globe: { label: 'Globe', icon: icons.globe, color: '#02514a', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   home: { label: 'Home', icon: icons.home, color: '#6366F1', inputs: 0, outputs: 1, fields: [], iconOnly: true },
   bookmark: { label: 'Bookmark', icon: icons.bookmark, color: '#F97316', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   flag: { label: 'Flag', icon: icons.flag, color: '#EF4444', inputs: 1, outputs: 1, fields: [], iconOnly: true },
@@ -220,5 +220,5 @@ export const defaultNodeTypes = {
   cpu: { label: 'CPU', icon: icons.cpu, color: '#64748B', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   activity: { label: 'Activity', icon: icons.activity, color: '#22C55E', inputs: 1, outputs: 1, fields: [], iconOnly: true },
   pieChart: { label: 'Pie Chart', icon: icons.pie, color: '#EC4899', inputs: 1, outputs: 1, fields: [], iconOnly: true },
-  barChart: { label: 'Bar Chart', icon: icons.chart, color: '#3B82F6', inputs: 1, outputs: 1, fields: [], iconOnly: true },
+  barChart: { label: 'Bar Chart', icon: icons.chart, color: '#02514a', inputs: 1, outputs: 1, fields: [], iconOnly: true },
 };

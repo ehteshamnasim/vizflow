@@ -33,10 +33,24 @@ class BaseNodeExecutor {
   /**
    * Interpolate variables in a string using context
    * Supports {{variable}} and {{node_1.field}} syntax
+   * If the entire string is just a single {{...}} reference, returns the actual value (preserving type)
    */
   static interpolate(str, context) {
     if (typeof str !== 'string') return str;
     
+    // Special case: if entire string is a single template reference, return the actual value
+    const fullMatch = str.match(/^\{\{([^}]+)\}\}$/);
+    if (fullMatch) {
+      const parts = fullMatch[1].trim().split('.');
+      let value = context;
+      for (const part of parts) {
+        if (value === undefined || value === null) return str;
+        value = value[part];
+      }
+      return value !== undefined ? value : str;
+    }
+    
+    // Otherwise, do string substitution
     return str.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
       const parts = key.trim().split('.');
       let value = context;
@@ -46,8 +60,35 @@ class BaseNodeExecutor {
         value = value[part];
       }
       
+      // For embedded templates, convert to string representation
+      if (typeof value === 'object') {
+        return JSON.stringify(value);
+      }
+      
       return value !== undefined ? value : match;
     });
+  }
+
+  /**
+   * Get a nested value from an object by path
+   */
+  static getByPath(obj, path) {
+    if (!path || !obj) return obj;
+    const parts = path.split('.');
+    let value = obj;
+    
+    for (const part of parts) {
+      // Handle array notation like items[0]
+      const match = part.match(/^(\w+)\[(\d+)\]$/);
+      if (match) {
+        value = value?.[match[1]]?.[parseInt(match[2])];
+      } else {
+        value = value?.[part];
+      }
+      if (value === undefined) return undefined;
+    }
+    
+    return value;
   }
 
   /**
@@ -388,7 +429,7 @@ class ConditionExecutor extends BaseNodeExecutor {
         key: 'conditionType',
         label: 'Condition Type',
         type: 'select',
-        options: ['expression', 'compare', 'exists', 'javascript'],
+        options: ['expression', 'compare', 'field', 'exists', 'javascript'],
         default: 'expression'
       },
       // Expression
@@ -421,6 +462,29 @@ class ConditionExecutor extends BaseNodeExecutor {
         type: 'text',
         placeholder: 'expected value',
         showIf: { conditionType: 'compare' }
+      },
+      // Field (for checking data fields)
+      {
+        key: 'field',
+        label: 'Field Name',
+        type: 'text',
+        placeholder: 'status',
+        showIf: { conditionType: 'field' }
+      },
+      {
+        key: 'operator',
+        label: 'Operator',
+        type: 'select',
+        options: ['equals', 'not_equals', 'greater_than', 'less_than', 'greater_equal', 'less_equal', 'contains', 'not_contains', 'is_empty', 'is_not_empty'],
+        default: 'equals',
+        showIf: { conditionType: 'field' }
+      },
+      {
+        key: 'value',
+        label: 'Value',
+        type: 'text',
+        placeholder: 'expected value',
+        showIf: { conditionType: 'field' }
       },
       // Exists
       {
@@ -456,6 +520,11 @@ class ConditionExecutor extends BaseNodeExecutor {
           result = this.evaluateCompare(config, context);
           break;
         
+        case 'field':
+          // Field comparison: check a field in lastResult or item
+          result = this.evaluateFieldCondition(config, context);
+          break;
+        
         case 'exists':
           result = this.evaluateExists(config.exists_path || '', context);
           break;
@@ -474,6 +543,40 @@ class ConditionExecutor extends BaseNodeExecutor {
       branch: result ? 'true' : 'false',
       data: { condition: result }
     };
+  }
+  
+  static evaluateFieldCondition(config, context) {
+    const fieldPath = config.field || '';
+    const operator = config.operator || 'equals';
+    const value = config.value || '';
+    
+    // Get field value from context (check item first for loops, then lastResult)
+    let fieldValue;
+    if (context.item && this.getByPath({ item: context.item }, `item.${fieldPath}`) !== undefined) {
+      fieldValue = this.getByPath({ item: context.item }, `item.${fieldPath}`);
+    } else if (context.lastResult?.data) {
+      fieldValue = this.getByPath(context.lastResult.data, fieldPath);
+    } else {
+      fieldValue = this.getByPath(context, fieldPath);
+    }
+    
+    // Convert value for numeric comparisons
+    const numFieldValue = parseFloat(fieldValue);
+    const numValue = parseFloat(value);
+    
+    switch (operator) {
+      case 'equals': return fieldValue == value;
+      case 'not_equals': return fieldValue != value;
+      case 'greater_than': return !isNaN(numFieldValue) && !isNaN(numValue) && numFieldValue > numValue;
+      case 'less_than': return !isNaN(numFieldValue) && !isNaN(numValue) && numFieldValue < numValue;
+      case 'greater_equal': return !isNaN(numFieldValue) && !isNaN(numValue) && numFieldValue >= numValue;
+      case 'less_equal': return !isNaN(numFieldValue) && !isNaN(numValue) && numFieldValue <= numValue;
+      case 'contains': return String(fieldValue).includes(String(value));
+      case 'not_contains': return !String(fieldValue).includes(String(value));
+      case 'is_empty': return !fieldValue || fieldValue === '' || (Array.isArray(fieldValue) && fieldValue.length === 0);
+      case 'is_not_empty': return fieldValue && fieldValue !== '' && (!Array.isArray(fieldValue) || fieldValue.length > 0);
+      default: return fieldValue == value;
+    }
   }
 
   static evaluateExpression(expression, context) {
@@ -563,16 +666,52 @@ class LoopExecutor extends BaseNodeExecutor {
   static async execute(node, config, context, signal) {
     // Note: Full loop implementation requires special handling in executor
     // This returns the array for the workflow executor to iterate
-    const sourcePath = config.source || '{{lastResult}}';
-    const source = this.interpolate(sourcePath, context);
+    // Support both 'source' and 'arrayPath' config fields
+    let sourcePath = config.source || config.arrayPath || '{{lastResult}}';
     
+    console.log('[LoopExecutor] source path:', sourcePath, 'lastResult:', context.lastResult);
+    
+    // If it's a plain path without {{}} template, treat it as a context path
+    // e.g., 'data' becomes lookup of context.data or context.lastResult.data
     let items = [];
-    try {
-      items = typeof source === 'string' ? JSON.parse(source) : source;
-      if (!Array.isArray(items)) items = [items];
-    } catch (e) {
-      items = [source];
+    
+    if (!sourcePath.includes('{{')) {
+      // Plain path - try direct lookup first, then lastResult.path, then lastResult.data.path
+      items = this.getByPath(context, sourcePath) || 
+              this.getByPath(context, `lastResult.${sourcePath}`) ||
+              this.getByPath(context, `lastResult.data.${sourcePath}`) ||
+              context.lastResult?.data ||
+              context.lastResult;
+    } else {
+      // Template path - interpolate and parse
+      const source = this.interpolate(sourcePath, context);
+      console.log('[LoopExecutor] interpolated source:', source, 'type:', typeof source);
+      try {
+        items = typeof source === 'string' ? JSON.parse(source) : source;
+      } catch (e) {
+        items = source;
+      }
     }
+    
+    console.log('[LoopExecutor] items before object check:', items, 'isArray:', Array.isArray(items));
+    
+    // If items is an object with a 'data' property that's an array, use that
+    if (items && typeof items === 'object' && !Array.isArray(items)) {
+      if (Array.isArray(items.data)) {
+        items = items.data;
+      } else if (items.data && typeof items.data === 'object') {
+        // If data is an object, try to extract array from it
+        const dataKeys = Object.keys(items.data);
+        if (dataKeys.length === 1 && Array.isArray(items.data[dataKeys[0]])) {
+          items = items.data[dataKeys[0]];
+        }
+      }
+    }
+    
+    // Ensure items is an array
+    if (!Array.isArray(items)) items = items ? [items] : [];
+    
+    console.log('[LoopExecutor] final items:', items.length, 'first:', items[0]);
     
     return {
       output: 'output_1',
@@ -626,13 +765,17 @@ class TransformExecutor extends BaseNodeExecutor {
   static async execute(node, config, context, signal) {
     const transformType = config.transformType || 'javascript';
     
+    console.log('[TransformExecutor] type:', transformType, 'lastResult:', context.lastResult);
+    
     try {
       let result;
       
       switch (transformType) {
         case 'javascript':
-          const fn = new Function('ctx', config.js_transform || 'return ctx.lastResult;');
-          result = await fn(context);
+          // Support both 'code' and 'js_transform' field names
+          const jsCode = config.code || config.js_transform || 'return ctx.lastResult;';
+          const fn = new Function('ctx', 'data', jsCode);
+          result = await fn(context, context.lastResult?.data);
           break;
         
         case 'json_path':
@@ -653,8 +796,11 @@ class TransformExecutor extends BaseNodeExecutor {
         data: result
       };
     } catch (error) {
+      // Transform only has 1 output, so error still goes to output_1
+      // but we include the error info in the result
       return {
-        output: 'output_2',
+        output: 'output_1',
+        data: context.lastResult?.data || null,
         error: error.message
       };
     }
@@ -723,33 +869,53 @@ class GenericExecutor extends BaseNodeExecutor {
   static getConfigSchema() {
     return [
       {
-        key: 'custom_data',
-        label: 'Custom Data (JSON)',
-        type: 'json',
-        default: '{}'
+        key: 'label',
+        label: 'Label',
+        type: 'text',
+        placeholder: 'Node label...'
       },
       {
         key: 'description',
         label: 'Description',
-        type: 'textarea'
+        type: 'textarea',
+        placeholder: 'Description of what this node does...'
+      },
+      {
+        key: 'custom_data',
+        label: 'Custom Data (JSON)',
+        type: 'json',
+        default: '{}',
+        placeholder: '{"key": "value"}'
+      },
+      {
+        key: 'pass_through',
+        label: 'Pass Through Input',
+        type: 'checkbox',
+        default: true
       }
     ];
   }
 
   static async execute(node, config, context, signal) {
-    let data = {};
+    let customData = {};
     try {
-      data = typeof config.custom_data === 'string'
+      customData = typeof config.custom_data === 'string'
         ? JSON.parse(config.custom_data)
         : (config.custom_data || {});
-      data = this.interpolateObject(data, context);
+      customData = this.interpolateObject(customData, context);
     } catch (e) {
-      console.warn('Invalid custom data:', e);
+      // Invalid JSON, use empty object
     }
+    
+    // If pass_through is enabled, merge with last result
+    const data = config.pass_through 
+      ? { ...context.lastResult?.data, ...customData }
+      : customData;
     
     return {
       output: 'output_1',
       data,
+      label: config.label || node.name,
       nodeType: node.name
     };
   }
@@ -1237,11 +1403,7 @@ class DatabaseExecutor extends BaseNodeExecutor {
     const query = this.interpolate(config.query || '', context);
     
     // Simulate database operation
-    console.log('[Database]:', {
-      type: config.db_type,
-      operation: config.operation,
-      query
-    });
+    // In production, this would connect to actual database
     
     // Return simulated result
     return {
@@ -1358,7 +1520,10 @@ class FilterExecutor extends BaseNodeExecutor {
   }
 
   static async execute(node, config, context, signal) {
-    let source = this.interpolate(config.source || '{{lastResult}}', context);
+    // Default to lastResult.data since that's where actual data is stored
+    let source = this.interpolate(config.source || '{{lastResult.data}}', context);
+    
+    console.log('[FilterExecutor] raw source:', source, 'type:', typeof source);
     
     try {
       if (typeof source === 'string') source = JSON.parse(source);
@@ -1367,27 +1532,38 @@ class FilterExecutor extends BaseNodeExecutor {
       source = [source];
     }
     
+    console.log('[FilterExecutor] parsed source length:', source.length);
+    
     let filtered;
     
-    if (config.filter_type === 'javascript') {
-      const fn = new Function('item', 'index', config.filter_code || 'return true;');
-      filtered = source.filter((item, index) => fn(item, index));
+    // Support both field naming conventions
+    const filterType = config.filter_type || config.filterType || 'property_match';
+    const filterCode = config.filter_code || config.code || 'return true;';
+    
+    if (filterType === 'javascript') {
+      const fn = new Function('item', 'index', 'data', filterCode);
+      filtered = source.filter((item, index) => fn(item, index, source));
     } else {
-      const property = config.property;
+      const property = config.property || config.field;
       const operator = config.operator || '==';
       const value = config.value;
       
       filtered = source.filter(item => {
-        const itemValue = item[property];
+        const itemValue = this.getNestedValue(item, property);
         switch (operator) {
-          case '==': return itemValue == value;
-          case '!=': return itemValue != value;
-          case '>': return itemValue > value;
-          case '<': return itemValue < value;
+          case '==':
+          case 'equals': return itemValue == value;
+          case '!=':
+          case 'not_equals': return itemValue != value;
+          case '>':
+          case 'greater_than': return itemValue > value;
+          case '<':
+          case 'less_than': return itemValue < value;
           case '>=': return itemValue >= value;
           case '<=': return itemValue <= value;
           case 'contains': return String(itemValue).includes(value);
-          case 'exists': return itemValue !== undefined && itemValue !== null;
+          case 'exists':
+          case 'not_empty': return itemValue !== undefined && itemValue !== null && itemValue !== '';
           default: return true;
         }
       });
@@ -1399,6 +1575,11 @@ class FilterExecutor extends BaseNodeExecutor {
       originalCount: source.length,
       filteredCount: filtered.length
     };
+  }
+  
+  static getNestedValue(obj, path) {
+    if (!path) return obj;
+    return path.split('.').reduce((curr, key) => curr?.[key], obj);
   }
 }
 
@@ -1513,9 +1694,11 @@ export class NodeExecutorRegistry {
     // Communication nodes
     'email': EmailExecutor,
     'slack': SlackExecutor,
+    'notification': SlackExecutor,
     
     // Time/delay nodes
     'delay': DelayExecutor,
+    'schedule': TriggerExecutor,
     
     // HTTP/API nodes
     'http': HttpExecutor,
@@ -1526,17 +1709,72 @@ export class NodeExecutorRegistry {
     'database': DatabaseExecutor,
     'mongodb': DatabaseExecutor,
     'redis': DatabaseExecutor,
+    'data': DatabaseExecutor,
     
     // Code execution
     'code': CodeExecutor,
     'nodejs': CodeExecutor,
     'python': CodeExecutor,
+    'subprocess': CodeExecutor,
     
     // Data nodes
     'filter': FilterExecutor,
+    'merge': TransformExecutor,
+    'json': TransformExecutor,
+    
+    // Cloud/DevOps nodes - use GenericExecutor with proper schema
+    'aws': ActionExecutor,
+    'lambda': ActionExecutor,
+    's3': ActionExecutor,
+    'docker': ActionExecutor,
+    'kubernetes': ActionExecutor,
+    'github': ActionExecutor,
+    'cloud': ActionExecutor,
+    'server': ActionExecutor,
+    
+    // Utility nodes
+    'file': ActionExecutor,
+    'folder': ActionExecutor,
+    'download': ActionExecutor,
+    'upload': ActionExecutor,
+    'search': ActionExecutor,
+    'link': ActionExecutor,
+    'settings': GenericExecutor,
+    'note': GenericExecutor,
+    
+    // Visual/Shape nodes - pass through
+    'image': GenericExecutor,
+    'svg': GenericExecutor,
+    'icon': GenericExecutor,
+    'circle': GenericExecutor,
+    'square': GenericExecutor,
+    'diamond': ConditionExecutor,
+    'hexagon': GenericExecutor,
+    'triangle': GenericExecutor,
+    'star': GenericExecutor,
+    'heart': GenericExecutor,
+    
+    // Status/Action nodes
+    'success': EndExecutor,
+    'error': EndExecutor,
+    'warning': GenericExecutor,
+    'info': GenericExecutor,
+    'user': GenericExecutor,
+    'users': GenericExecutor,
+    'trash': ActionExecutor,
+    'edit': ActionExecutor,
+    'copy': ActionExecutor,
+    'refresh': ActionExecutor,
+    
+    // Process nodes
+    'process': ActionExecutor,
+    'decision': ConditionExecutor,
+    'document': GenericExecutor,
+    'connector': GenericExecutor,
     
     // Aliases
     'start': TriggerExecutor,
+    'stop': EndExecutor,
     'if': ConditionExecutor,
     'switch': ConditionExecutor,
     'foreach': LoopExecutor,

@@ -40,8 +40,9 @@ export class WorkflowExecutor {
     const nodes = {};
     
     Object.entries(exportData.drawflow?.Home?.data || {}).forEach(([id, node]) => {
+      // Keep ID as string for consistent key access
       nodes[id] = {
-        id: parseInt(id),
+        id: id,
         name: node.name,
         class: node.class,
         data: node.data || {},
@@ -112,16 +113,17 @@ export class WorkflowExecutor {
     if (outputKey && outputs[outputKey]) {
       outputs = { [outputKey]: outputs[outputKey] };
     } else if (outputKey && !outputs[outputKey]) {
-      // Requested output doesn't exist, return empty
-      return [];
+      // Requested output doesn't exist - fall back to processing all outputs
+      // This handles nodes with single output that return different output keys
     }
     
     Object.entries(outputs).forEach(([key, output]) => {
       if (!output || !output.connections) return;
       
       output.connections.forEach(conn => {
-        const nextNode = nodes[conn.node];
-        // Skip collapsed group placeholder nodes during execution
+        // conn.node could be string or number - normalize to string for lookup
+        const nextNodeId = String(conn.node);
+        const nextNode = nodes[nextNodeId];
         if (nextNode && nextNode.name !== 'collapsed-group') {
           nextNodes.push({
             node: nextNode,
@@ -239,7 +241,8 @@ export class WorkflowExecutor {
         this.onNodeComplete(nodeId, node, result);
       }
       
-      return { success: true, result, output: result?.output || 'output_1' };
+      // Spread result properties so isLoop, data, etc. are accessible
+      return { success: true, ...result, output: result?.output || 'output_1' };
       
     } catch (error) {
       // Get node configuration for error log
@@ -271,10 +274,14 @@ export class WorkflowExecutor {
    * Execute workflow from a starting node
    */
   async executeFromNode(startNodeId) {
-    const queue = [startNodeId];
+    const queue = [String(startNodeId)];
     const visited = new Set();
+    const loopStates = new Map(); // Track loop iterations: nodeId -> { items, index, itemVar, indexVar }
+    
+    console.log('[Executor] Starting execution from node:', startNodeId);
     
     while (queue.length > 0 && this.isRunning) {
+      console.log('[Executor] Queue:', [...queue], 'Visited:', [...visited], 'LoopStates:', [...loopStates.keys()]);
       // Check for pause
       while (this.isPaused && this.isRunning) {
         await this.delay(100);
@@ -282,9 +289,59 @@ export class WorkflowExecutor {
       
       if (!this.isRunning) break;
       
-      const nodeId = queue.shift();
+      const nodeId = String(queue.shift());
       
-      // Skip if already visited (prevents infinite loops)
+      // Check if this is a loop node with ongoing iteration
+      const loopState = loopStates.get(nodeId);
+      if (loopState) {
+        // Increment to next iteration
+        loopState.index++;
+        
+        console.log('[Loop] Iteration', loopState.index, 'of', loopState.items.length);
+        
+        if (loopState.index < loopState.items.length) {
+          // More items to process - set context and continue loop body
+          this.executionContext[loopState.itemVar] = loopState.items[loopState.index];
+          this.executionContext[loopState.indexVar] = loopState.index;
+          
+          // Re-mark as success for visualization
+          this.setNodeState(nodeId, 'success');
+          
+          // Notify about loop iteration for connection coloring
+          if (this.onNodeComplete) {
+            this.onNodeComplete(nodeId, { name: 'loop' }, { output: 'output_1' });
+          }
+          
+          // Get next nodes via output_1 (loop body)
+          const nextNodes = this.getNextNodes(nodeId, 'output_1');
+          nextNodes.forEach(n => queue.push(String(n.node.id)));
+          
+          // Clear visited for loop body nodes so they can re-execute
+          const loopBodyNodes = this.getLoopBodyNodes(nodeId);
+          loopBodyNodes.forEach(id => visited.delete(String(id)));
+          continue;
+        } else {
+          // Loop complete - go to output_2 (done)
+          loopStates.delete(nodeId);
+          this.setNodeState(nodeId, 'success');
+          
+          // Notify about loop completion for connection coloring
+          if (this.onNodeComplete) {
+            this.onNodeComplete(nodeId, { name: 'loop' }, { output: 'output_2' });
+          }
+          
+          const nextNodes = this.getNextNodes(nodeId, 'output_2');
+          nextNodes.forEach(n => {
+            const nid = String(n.node.id);
+            if (!visited.has(nid)) {
+              queue.push(nid);
+            }
+          });
+          continue;
+        }
+      }
+      
+      // Skip if already visited (prevents infinite loops for non-loop nodes)
       if (visited.has(nodeId)) continue;
       visited.add(nodeId);
       
@@ -298,22 +355,94 @@ export class WorkflowExecutor {
       
       // If execution failed and we don't have error handling, skip to next
       if (!result.success) {
-        // Could add error path handling here
+        continue;
+      }
+      
+      // Handle loop nodes specially
+      console.log('[Executor] Loop check for node', nodeId, '- isLoop:', result.isLoop, 'data type:', typeof result.data, 'isArray:', Array.isArray(result.data), 'length:', result.data?.length);
+      if (result.isLoop && Array.isArray(result.data) && result.data.length > 0) {
+        const itemVar = result.itemVariable || 'item';
+        const indexVar = result.indexVariable || 'index';
+        
+        console.log('[Executor] Loop node', nodeId, 'has', result.data.length, 'items to iterate');
+        
+        // Initialize loop state
+        loopStates.set(nodeId, {
+          items: result.data,
+          index: 0,
+          itemVar,
+          indexVar
+        });
+        
+        // Set context for first iteration
+        this.executionContext[itemVar] = result.data[0];
+        this.executionContext[indexVar] = 0;
+        
+        // Get next nodes via output_1 (loop body)
+        const nextNodes = this.getNextNodes(nodeId, 'output_1');
+        nextNodes.forEach(n => queue.push(String(n.node.id)));
+        continue;
+      }
+      
+      // Handle empty loop - go directly to output_2
+      if (result.isLoop && (!result.data || result.data.length === 0)) {
+        const nextNodes = this.getNextNodes(nodeId, 'output_2');
+        nextNodes.forEach(n => {
+          const nid = String(n.node.id);
+          if (!visited.has(nid)) {
+            queue.push(nid);
+          }
+        });
         continue;
       }
       
       // Get next nodes based on result output
-      // The executor returns which output to follow (e.g., 'output_1' for true branch, 'output_2' for false)
       const outputKey = result.output || 'output_1';
       const nextNodes = this.getNextNodes(nodeId, outputKey);
       
+      console.log('[Executor] Node', nodeId, 'output:', outputKey, 'next nodes:', nextNodes.map(n => n.node.id));
+      
       // Add next nodes to queue
+      // Allow loop nodes with active states to be re-added even if visited
       nextNodes.forEach(n => {
-        if (!visited.has(n.node.id)) {
-          queue.push(n.node.id);
+        const nid = String(n.node.id);
+        const willQueue = !visited.has(nid) || loopStates.has(nid);
+        console.log('[Executor] Checking node', nid, '- visited:', visited.has(nid), 'loopState:', loopStates.has(nid), 'willQueue:', willQueue);
+        if (willQueue) {
+          queue.push(nid);
         }
       });
     }
+  }
+  
+  /**
+   * Get all nodes in the loop body (nodes reachable from output_1 that lead back to the loop)
+   */
+  getLoopBodyNodes(loopNodeId) {
+    const loopId = String(loopNodeId);
+    const bodyNodes = new Set();
+    const queue = [];
+    
+    // Start with nodes connected to output_1
+    const firstNodes = this.getNextNodes(loopId, 'output_1');
+    firstNodes.forEach(n => queue.push(String(n.node.id)));
+    
+    while (queue.length > 0) {
+      const nodeId = queue.shift();
+      if (bodyNodes.has(nodeId) || nodeId === loopId) continue;
+      bodyNodes.add(nodeId);
+      
+      // Get all outputs from this node
+      const allNextNodes = this.getNextNodes(nodeId, null);
+      allNextNodes.forEach(n => {
+        const nid = String(n.node.id);
+        if (!bodyNodes.has(nid)) {
+          queue.push(nid);
+        }
+      });
+    }
+    
+    return bodyNodes;
   }
 
   /**

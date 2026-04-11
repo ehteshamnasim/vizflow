@@ -7,8 +7,8 @@
    ============================================================================ */
 
 .workflow-builder {
-  --primary: #2563EB;
-  --primary-hover: #1D4ED8;
+  --primary: #02514a;
+  --primary-hover: #013d38;
   
   --bg-body: #F8FAFC;
   --bg-white: #FFFFFF;
@@ -27,7 +27,7 @@
   --node-shadow: 0 1px 3px rgba(0,0,0,0.1);
   
   --connection-color: #94A3B8;
-  --dot-color: #2563EB;
+  --dot-color: #02514a;
   
   --header-height: 56px;
   --sidebar-width: 240px;
@@ -105,8 +105,29 @@
   gap: 10px;
 }
 
+.workflow-title-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.workflow-title-link:hover {
+  opacity: 0.8;
+}
+
 .workflow-icon {
-  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  background: #02514a;
+  color: #fff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .workflow-title h1 {
@@ -183,6 +204,16 @@
 
 .dropdown-item:hover {
   background: var(--bg-sidebar);
+}
+
+.dropdown-item.active {
+  background: var(--primary);
+  color: white;
+  font-weight: 500;
+}
+
+.dropdown-item.active:hover {
+  background: var(--primary-hover);
 }
 
 .dropdown-divider {
@@ -386,7 +417,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .canvas-toolbar {
@@ -396,13 +427,18 @@
   padding: 8px 12px;
   background: var(--bg-white);
   border-bottom: 1px solid var(--border);
+  overflow: visible;
+  z-index: 100;
 }
 
 .zoom-controls,
-.history-controls {
+.history-controls,
+.toggle-controls,
+.execution-controls {
   display: flex;
   align-items: center;
   gap: 4px;
+  overflow: visible;
 }
 
 .zoom-level {
@@ -440,6 +476,15 @@
 
 .workflow-canvas {
   flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* The canvas container should fill available space */
+#drawflow-canvas {
+  width: 100%;
+  height: 100%;
+  position: relative;
   overflow: hidden;
 }
 
@@ -557,7 +602,7 @@
 .property-field textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 2px rgba(2, 81, 74, 0.1);
 }
 
 .property-field textarea {
@@ -800,7 +845,7 @@
 .node-field select:focus,
 .node-field textarea:focus {
   outline: none;
-  border-color: #5A8DEE;
+  border-color: #02514a;
   background: #FFF;
 }
 
@@ -818,10 +863,16 @@
    DRAWFLOW OVERRIDES - Connection dots and styling
    ============================================================================ */
 
-.drawflow {
+/* Fixed dot pattern background on the canvas container */
+#drawflow-canvas {
   background-color: #F8FAFC !important;
   background-image: radial-gradient(circle, #D1D5DB 1px, transparent 1px) !important;
   background-size: 20px 20px !important;
+}
+
+/* Inner drawflow element - transparent so parent background shows through */
+.drawflow {
+  background: transparent !important;
 }
 
 .drawflow .drawflow-node {
@@ -831,8 +882,8 @@
 }
 
 .drawflow .drawflow-node.selected .workflow-node {
-  border-color: #5A8DEE !important;
-  box-shadow: 0 0 0 2px rgba(90, 141, 238, 0.2) !important;
+  border-color: #02514a !important;
+  box-shadow: 0 0 0 2px rgba(2, 81, 74, 0.2) !important;
 }
 
 /* Input dots - LEFT side */
@@ -867,18 +918,72 @@
 
 /* Connection lines */
 .drawflow .connection .main-path {
-  stroke: #5A8DEE !important;
-  stroke-width: 2px !important;
+  stroke: #5A8DEE;
+  stroke-width: 2px;
   cursor: pointer;
   pointer-events: stroke;
 }
 
 .drawflow .connection:hover .main-path {
-  stroke: #3B7DDD !important;
+  stroke: #3B7DDD;
 }
 
 .drawflow .connection.selected .main-path {
-  stroke: #3B7DDD !important;
+  stroke: #3B7DDD;
+}
+
+/* Condition node outputs - Green for true (output_1), Red for false (output_2) */
+.drawflow .drawflow-node[data-type="condition"] .outputs .output:first-child,
+.drawflow .drawflow-node[data-type="if"] .outputs .output:first-child,
+.drawflow .drawflow-node[data-type="decision"] .outputs .output:first-child {
+  border-color: #22C55E !important;
+}
+
+.drawflow .drawflow-node[data-type="condition"] .outputs .output:first-child:hover,
+.drawflow .drawflow-node[data-type="if"] .outputs .output:first-child:hover,
+.drawflow .drawflow-node[data-type="decision"] .outputs .output:first-child:hover {
+  border-color: #22C55E !important;
+  background: #22C55E !important;
+}
+
+.drawflow .drawflow-node[data-type="condition"] .outputs .output:last-child,
+.drawflow .drawflow-node[data-type="if"] .outputs .output:last-child,
+.drawflow .drawflow-node[data-type="decision"] .outputs .output:last-child {
+  border-color: #EF4444 !important;
+}
+
+.drawflow .drawflow-node[data-type="condition"] .outputs .output:last-child:hover,
+.drawflow .drawflow-node[data-type="if"] .outputs .output:last-child:hover,
+.drawflow .drawflow-node[data-type="decision"] .outputs .output:last-child:hover {
+  border-color: #EF4444 !important;
+  background: #EF4444 !important;
+}
+
+/* Connections from condition nodes - colored by output (static/design mode) */
+/* Use lower specificity so execution colors override */
+.drawflow .connection.condition-true .main-path {
+  stroke: #22C55E;
+}
+
+.drawflow .connection.condition-false .main-path {
+  stroke: #EF4444;
+}
+
+/* Execution-based connection colors - HIGHEST PRIORITY, override static colors */
+.drawflow .connection.exec-taken .main-path,
+.drawflow svg.connection.exec-taken .main-path {
+  stroke: #22C55E !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.5)) !important;
+  opacity: 1 !important;
+}
+
+.drawflow .connection.exec-not-taken .main-path,
+.drawflow svg.connection.exec-not-taken .main-path {
+  stroke: #9CA3AF !important;
+  stroke-width: 2px !important;
+  opacity: 0.5 !important;
+  filter: none !important;
 }
 
 /* SVG connection container - only path should be clickable */
@@ -956,7 +1061,7 @@
 
 .sidebar-search input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 2px rgba(2, 81, 74, 0.1);
 }
 
 .sidebar-search input::placeholder {
@@ -1276,21 +1381,21 @@
 
 .group-box {
   position: absolute;
-  border: 2px dashed var(--group-color, #3B82F6);
+  border: 2px dashed var(--group-color, #02514a);
   border-radius: 12px;
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(2, 81, 74, 0.05);
   pointer-events: none;
   z-index: 0;
   transition: border-color 0.2s, background 0.2s, opacity 0.2s;
 }
 
 .group-box:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(2, 81, 74, 0.1);
 }
 
 .group-box.dragging {
   border-style: solid;
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(2, 81, 74, 0.15);
 }
 
 .group-header {
@@ -1313,7 +1418,7 @@
 .group-ungroup-btn {
   background: transparent;
   border: none;
-  color: var(--group-color, #3B82F6);
+  color: var(--group-color, #02514a);
   font-size: 14px;
   cursor: pointer;
   padding: 2px 6px;
@@ -1336,7 +1441,7 @@
 .group-collapse-btn {
   background: transparent;
   border: none;
-  color: var(--group-color, #3B82F6);
+  color: var(--group-color, #02514a);
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
@@ -1360,7 +1465,7 @@
   flex: 1;
   background: transparent;
   border: none;
-  color: var(--group-color, #3B82F6);
+  color: var(--group-color, #02514a);
   font-size: 12px;
   font-weight: 600;
   outline: none;
@@ -1381,15 +1486,15 @@
 
 /* Grouped node indicator */
 .drawflow-node.grouped {
-  box-shadow: 0 0 0 2px var(--group-color, #3B82F6), 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 0 2px var(--group-color, #02514a), 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .theme-dark .group-box {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(2, 81, 74, 0.08);
 }
 
 .theme-dark .group-box:hover {
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(2, 81, 74, 0.12);
 }
 
 /* ============================================================================
@@ -1445,7 +1550,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02));
+  background: linear-gradient(135deg, rgba(2, 81, 74, 0.05), rgba(2, 81, 74, 0.02));
   border-radius: 8px;
 }
 
@@ -1475,7 +1580,7 @@
 }
 
 .collapsed-group-expand {
-  background: #2563EB;
+  background: #02514a;
   border: none;
   color: white;
   font-size: 18px;
@@ -1492,12 +1597,12 @@
 }
 
 .collapsed-group-expand:hover {
-  background: #1D4ED8;
+  background: #013d38;
   transform: scale(1.1);
 }
 
 .theme-dark .collapsed-group-content {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+  background: linear-gradient(135deg, rgba(2, 81, 74, 0.1), rgba(2, 81, 74, 0.05));
 }
 
 
@@ -1673,7 +1778,7 @@
 .modal-field textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(2, 81, 74, 0.1);
 }
 
 .modal-field input[type="number"] {
@@ -2021,7 +2126,7 @@
 .minimap-viewport {
   position: absolute;
   border: 2px solid var(--primary);
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(2, 81, 74, 0.1);
   border-radius: 2px;
   cursor: move;
   z-index: 10;
@@ -2063,13 +2168,13 @@
 
 @keyframes copy-flash {
   0% {
-    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+    box-shadow: 0 0 0 0 rgba(2, 81, 74, 0.7);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+    box-shadow: 0 0 0 10px rgba(2, 81, 74, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+    box-shadow: 0 0 0 0 rgba(2, 81, 74, 0);
   }
 }
 
@@ -2115,6 +2220,59 @@
 }
 
 /* ============================================================================
+   BUTTON TOOLTIPS
+   ============================================================================ */
+
+/* Tooltip container */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::before,
+[data-tooltip]::after {
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.15s ease-out;
+  z-index: 99999;
+}
+
+/* Tooltip text - appears BELOW by default */
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #1e1e2e;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* Tooltip arrow - points up (for below tooltip) */
+[data-tooltip]::after {
+  content: '';
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  border: 5px solid transparent;
+  border-bottom-color: #1e1e2e;
+}
+
+/* Show on hover */
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================================
    MULTI-SELECT
    ============================================================================ */
 
@@ -2125,7 +2283,7 @@
 .selection-box {
   position: absolute;
   border: 2px dashed var(--primary);
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(2, 81, 74, 0.15);
   pointer-events: none;
   z-index: 9999;
   display: none;
@@ -2220,8 +2378,8 @@
 
 .workflow-builder.snap-enabled .workflow-canvas {
   background-image: 
-    linear-gradient(to right, rgba(37, 99, 235, 0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(37, 99, 235, 0.1) 1px, transparent 1px);
+    linear-gradient(to right, rgba(2, 81, 74, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(2, 81, 74, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -2288,8 +2446,8 @@
 }
 
 .drawflow-node.exec-running {
-  border-color: #3B82F6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), 0 4px 12px rgba(59, 130, 246, 0.2) !important;
+  border-color: #02514a !important;
+  box-shadow: 0 0 0 3px rgba(2, 81, 74, 0.3), 0 4px 12px rgba(2, 81, 74, 0.2) !important;
 }
 
 .drawflow-node.exec-success {
@@ -2353,10 +2511,10 @@
 
 @keyframes exec-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), 0 4px 12px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 3px rgba(2, 81, 74, 0.3), 0 4px 12px rgba(2, 81, 74, 0.2);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.1), 0 4px 20px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 0 6px rgba(2, 81, 74, 0.1), 0 4px 20px rgba(2, 81, 74, 0.3);
   }
 }
 
@@ -2493,8 +2651,8 @@
 .config-field select:focus,
 .config-field textarea:focus {
   outline: none;
-  border-color: #2563EB;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #02514a;
+  box-shadow: 0 0 0 3px rgba(2, 81, 74, 0.1);
 }
 
 .config-field input[type="checkbox"] {
@@ -2569,12 +2727,12 @@
 
 .custom-field-row .btn-add-field {
   color: var(--primary);
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(2, 81, 74, 0.1);
   border-color: var(--primary);
 }
 
 .custom-field-row .btn-add-field:hover {
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(2, 81, 74, 0.2);
 }
 
 .btn-add-field {
