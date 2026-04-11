@@ -1,7 +1,7 @@
 {
-  "name": "@yourcompany/workflow-builder",
+  "name": "flowkit",
   "version": "1.0.0",
-  "description": "A powerful, customizable workflow builder built on top of Drawflow. Create visual workflows with drag-and-drop nodes, custom connectors, and seamless save/load functionality.",
+  "description": "FlowKit - A powerful visual workflow builder with 60+ nodes, API testing, and full execution engine. Build, test, and export automation workflows.",
   "main": "dist/workflow-builder.js",
   "module": "src/index.js",
   "types": "dist/workflow-builder.d.ts",

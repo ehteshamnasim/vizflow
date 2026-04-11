@@ -33,6 +33,8 @@
 import Drawflow from 'drawflow';
 import { NodeRegistry } from './NodeRegistry.js';
 import { defaultNodeTypes } from '../nodes/defaultNodes.js';
+import { WorkflowExecutor } from './WorkflowExecutor.js';
+import { NodeExecutorRegistry } from './NodeExecutors.js';
 
 export class WorkflowBuilder {
   
@@ -118,6 +120,16 @@ export class WorkflowBuilder {
     this.groups = new Map();  // groupId -> { nodeIds: Set, label: string, color: string, collapsed: boolean, savedConnections: [] }
     this.nextGroupId = 1;
     this.collapsedGroupNodes = new Map(); // groupId -> nodeId of collapsed placeholder
+    
+    /**
+     * Node configurations for execution
+     */
+    this.nodeConfigs = new Map(); // nodeId -> configuration object
+    
+    /**
+     * Workflow executor instance
+     */
+    this.executor = null; // Initialized after Drawflow is ready
     
     /**
      * Search filter state
@@ -365,10 +377,24 @@ export class WorkflowBuilder {
         -->
         <header class="workflow-header">
           <div class="workflow-title">
-            <span class="workflow-icon">W</span>
-            <h1>Workflow Builder</h1>
+            <span class="workflow-icon">⚡</span>
+            <h1>FlowKit</h1>
           </div>
           <div class="workflow-actions">
+            <div class="dropdown" id="examples-dropdown">
+              <button class="btn btn-secondary dropdown-toggle" data-action="toggle-examples">
+                📚 Examples
+                <span class="dropdown-arrow">▼</span>
+              </button>
+              <div class="dropdown-menu" id="examples-menu">
+                <div class="dropdown-item" data-example="api-test">🌐 API Request Test</div>
+                <div class="dropdown-item" data-example="data-pipeline">🔄 Data Pipeline</div>
+                <div class="dropdown-item" data-example="condition-flow">🔀 Conditional Flow</div>
+                <div class="dropdown-item" data-example="loop-example">🔁 Loop Through Data</div>
+                <div class="dropdown-item" data-example="notification-flow">📧 Notification Flow</div>
+                <div class="dropdown-item" data-example="error-handling">⚠️ Error Handling</div>
+              </div>
+            </div>
             <button class="btn btn-secondary" data-action="validate">Validate</button>
             <button class="btn btn-secondary" data-action="clear">Clear</button>
             <button class="btn btn-secondary" data-action="import">Import</button>
@@ -441,6 +467,23 @@ export class WorkflowBuilder {
                 </button>
                 <button class="toolbar-btn" data-action="redo" title="Redo (Ctrl+Y)" disabled>
                   <span>↷</span>
+                </button>
+              </div>
+              <div class="execution-controls">
+                <button class="toolbar-btn exec-btn" data-action="exec-run" title="Run Workflow">
+                  <span>▶</span>
+                </button>
+                <button class="toolbar-btn exec-btn" data-action="exec-pause" title="Pause" disabled>
+                  <span>⏸</span>
+                </button>
+                <button class="toolbar-btn exec-btn" data-action="exec-stop" title="Stop" disabled>
+                  <span>⏹</span>
+                </button>
+                <button class="toolbar-btn exec-btn" data-action="exec-reset" title="Reset">
+                  <span>↺</span>
+                </button>
+                <button class="toolbar-btn exec-btn" data-action="exec-log" title="Toggle Execution Log">
+                  <span>📋</span>
                 </button>
               </div>
             </div>
@@ -556,6 +599,45 @@ export class WorkflowBuilder {
           </div>
         </div>
       </div>
+      
+      <!-- 
+        NODE CONFIG PANEL
+        Panel for configuring node execution settings 
+      -->
+      <div class="config-panel-backdrop" id="config-panel-backdrop"></div>
+      <div class="node-config-panel" id="node-config-panel">
+        <div class="config-panel-header">
+          <h3>Node Configuration</h3>
+          <button class="config-panel-close" data-action="close-config">&times;</button>
+        </div>
+        <div class="config-panel-body">
+          <div class="config-panel-loading">Loading configuration...</div>
+        </div>
+        <div class="config-panel-footer">
+          <button class="btn btn-secondary" data-action="close-config">Cancel</button>
+          <button class="btn btn-primary" data-action="save-config">Save Configuration</button>
+        </div>
+      </div>
+      
+      <!-- 
+        EXECUTION LOG PANEL
+        Shows execution history and results 
+      -->
+      <div class="execution-log-panel" id="execution-log-panel">
+        <div class="log-panel-header">
+          <h3>Execution Log</h3>
+          <button class="log-panel-close" data-action="close-log">&times;</button>
+        </div>
+        <div class="log-panel-body">
+          <div class="log-empty">No execution history yet. Run your workflow to see logs.</div>
+        </div>
+      </div>
+      
+      <!-- 
+        NODE CONFIG TOOLTIP
+        Shows config summary on hover 
+      -->
+      <div class="node-config-tooltip" id="node-config-tooltip"></div>
     `;
   }
 
@@ -644,6 +726,12 @@ export class WorkflowBuilder {
      * Start Drawflow
      */
     this.drawflow.start();
+    
+    /**
+     * Initialize Workflow Executor
+     */
+    this.executor = new WorkflowExecutor(this);
+    this._setupExecutorCallbacks();
     
     /**
      * Set max zoom to allow up to 200%
@@ -1001,6 +1089,9 @@ export class WorkflowBuilder {
         case 'toggle-animate':
           this.toggleAnimate();
           break;
+        case 'toggle-examples':
+          this._toggleExamplesDropdown();
+          break;
         case 'undo':
           this.undo();
           break;
@@ -1031,8 +1122,46 @@ export class WorkflowBuilder {
         case 'save-custom-node':
           this._saveCustomNode();
           break;
+        case 'exec-run':
+          this.runWorkflow();
+          break;
+        case 'exec-pause':
+          this.pauseWorkflow();
+          break;
+        case 'exec-stop':
+          this.stopWorkflow();
+          break;
+        case 'exec-reset':
+          this.resetWorkflow();
+          break;
+        case 'exec-log':
+          this.toggleExecutionLog();
+          break;
       }
     });
+    
+    /**
+     * Handle examples dropdown clicks
+     */
+    const examplesMenu = this.container.querySelector('#examples-menu');
+    if (examplesMenu) {
+      examplesMenu.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-example]');
+        if (item) {
+          const exampleId = item.dataset.example;
+          this._loadExample(exampleId);
+          this._toggleExamplesDropdown(false);
+        }
+      });
+      
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        const dropdown = this.container.querySelector('#examples-dropdown');
+        if (dropdown && !dropdown.contains(e.target)) {
+          this._toggleExamplesDropdown(false);
+        }
+      });
+    }
 
     /**
      * Handle file import
@@ -1273,6 +1402,116 @@ export class WorkflowBuilder {
     this.drawflow.on('zoom', (zoom) => {
       this._updateZoomDisplay(zoom);
     });
+    
+    /**
+     * Double-click on node to open config panel
+     */
+    const canvas = this.container.querySelector('#drawflow-canvas');
+    canvas.addEventListener('dblclick', (event) => {
+      const nodeEl = event.target.closest('.drawflow-node');
+      if (nodeEl) {
+        const nodeId = nodeEl.id.replace('node-', '');
+        this.showNodeConfigPanel(nodeId);
+      }
+    });
+    
+    /**
+     * Hover on node to show config tooltip
+     */
+    let tooltipTimeout = null;
+    let currentHoveredNode = null;
+    
+    canvas.addEventListener('mouseover', (event) => {
+      const nodeEl = event.target.closest('.drawflow-node');
+      
+      // If we're already hovering this node, skip
+      if (nodeEl === currentHoveredNode) return;
+      
+      // Clear any pending tooltip
+      if (tooltipTimeout) {
+        clearTimeout(tooltipTimeout);
+        tooltipTimeout = null;
+      }
+      this._hideConfigTooltip();
+      
+      if (nodeEl && !nodeEl.classList.contains('comment-node-wrapper')) {
+        currentHoveredNode = nodeEl;
+        const nodeId = nodeEl.id.replace('node-', '');
+        tooltipTimeout = setTimeout(() => {
+          this._showConfigTooltip(nodeId, nodeEl);
+        }, 600); // Show after 600ms hover
+      } else {
+        currentHoveredNode = null;
+      }
+    });
+    
+    canvas.addEventListener('mouseout', (event) => {
+      const nodeEl = event.target.closest('.drawflow-node');
+      const relatedTarget = event.relatedTarget?.closest('.drawflow-node');
+      
+      // Only hide if we're leaving the node entirely (not just moving between children)
+      if (nodeEl && nodeEl !== relatedTarget) {
+        if (tooltipTimeout) {
+          clearTimeout(tooltipTimeout);
+          tooltipTimeout = null;
+        }
+        currentHoveredNode = null;
+        this._hideConfigTooltip();
+      }
+    });
+    
+    /**
+     * Config panel buttons and backdrop click
+     */
+    this.container.addEventListener('click', (event) => {
+      // Close panel when clicking backdrop
+      if (event.target.id === 'config-panel-backdrop') {
+        this.hideNodeConfigPanel();
+        return;
+      }
+      
+      // Add custom field button
+      if (event.target.classList.contains('btn-add-field')) {
+        const row = event.target.closest('.new-field-row');
+        const keyInput = row.querySelector('.new-field-key');
+        const valueInput = row.querySelector('.new-field-value');
+        const key = keyInput.value.trim();
+        const value = valueInput.value;
+        
+        if (key) {
+          const fieldsList = this.container.querySelector('.custom-fields-list');
+          const newRow = document.createElement('div');
+          newRow.className = 'custom-field-row';
+          newRow.dataset.key = key;
+          newRow.innerHTML = `
+            <input type="text" value="${this._escapeHtml(key)}" placeholder="Key" class="custom-field-key" readonly>
+            <input type="text" value="${this._escapeHtml(value)}" placeholder="Value" class="custom-field-value" name="custom_${key}">
+            <button type="button" class="remove-custom-field" title="Remove">×</button>
+          `;
+          fieldsList.appendChild(newRow);
+          keyInput.value = '';
+          valueInput.value = '';
+        }
+        return;
+      }
+      
+      // Remove custom field button
+      if (event.target.classList.contains('remove-custom-field')) {
+        event.target.closest('.custom-field-row').remove();
+        return;
+      }
+      
+      const action = event.target.closest('[data-action]')?.dataset?.action;
+      
+      if (action === 'close-config') {
+        this.hideNodeConfigPanel();
+      } else if (action === 'save-config') {
+        this.saveNodeConfig();
+      } else if (action === 'close-log') {
+        const logPanel = this.container.querySelector('#execution-log-panel');
+        if (logPanel) logPanel.classList.remove('visible');
+      }
+    });
   }
 
 
@@ -1384,13 +1623,45 @@ export class WorkflowBuilder {
       return this._createPropertyFieldHtml(field, value, nodeId);
     }).join('');
 
+    /**
+     * Build execution config summary
+     */
+    const execConfig = this.getNodeConfig(nodeId);
+    const configEntries = Object.entries(execConfig || {});
+    const configSummaryHtml = configEntries.length > 0 
+      ? configEntries.map(([key, value]) => {
+          let displayValue = value;
+          if (typeof value === 'object') {
+            displayValue = JSON.stringify(value).substring(0, 50);
+          } else if (typeof value === 'string' && value.length > 50) {
+            displayValue = value.substring(0, 50) + '...';
+          }
+          return `<div class="config-summary-row"><span class="config-key">${key}:</span> <span class="config-val">${this._escapeHtml(String(displayValue))}</span></div>`;
+        }).join('')
+      : '<div class="config-empty-msg">No execution config set</div>';
+
     propertiesContent.innerHTML = `
       <div class="properties-node-info">
         <span class="properties-icon">${definition.icon}</span>
         <span class="properties-name">${definition.label}</span>
       </div>
       <div class="properties-fields">
-        ${fieldsHtml || '<p class="no-properties">No configurable properties</p>'}
+        ${fieldsHtml || '<p class="no-properties">No visual properties</p>'}
+      </div>
+      <div class="properties-section">
+        <h4>Execution Config</h4>
+        <div class="config-summary">
+          ${configSummaryHtml}
+        </div>
+        <button class="btn btn-primary btn-small" data-action="edit-config" data-node-id="${nodeId}">
+          Edit Config
+        </button>
+      </div>
+      <div class="properties-section">
+        <h4>Run Options</h4>
+        <button class="btn btn-success btn-small" data-action="run-node" data-node-id="${nodeId}">
+          ▶ Test This Node
+        </button>
       </div>
       <div class="properties-actions">
         <button class="btn btn-danger btn-small" data-action="delete-node" data-node-id="${nodeId}">
@@ -1405,8 +1676,22 @@ export class WorkflowBuilder {
     this._setupPropertyFieldListeners(nodeId);
 
     /**
-     * Setup delete button
+     * Setup action buttons
      */
+    const editConfigBtn = propertiesContent.querySelector('[data-action="edit-config"]');
+    if (editConfigBtn) {
+      editConfigBtn.addEventListener('click', () => {
+        this.showNodeConfigPanel(nodeId);
+      });
+    }
+    
+    const runNodeBtn = propertiesContent.querySelector('[data-action="run-node"]');
+    if (runNodeBtn) {
+      runNodeBtn.addEventListener('click', () => {
+        this.runSingleNode(nodeId);
+      });
+    }
+
     propertiesContent.querySelector('[data-action="delete-node"]').addEventListener('click', () => {
       this.drawflow.removeNodeId(`node-${nodeId}`);
     });
@@ -1858,6 +2143,14 @@ export class WorkflowBuilder {
       data._nextGroupId = this.nextGroupId;
     }
     
+    // Add node configurations for execution
+    if (this.nodeConfigs && this.nodeConfigs.size > 0) {
+      data._nodeConfigs = {};
+      this.nodeConfigs.forEach((config, nodeId) => {
+        data._nodeConfigs[nodeId] = config;
+      });
+    }
+    
     return data;
   }
 
@@ -1878,6 +2171,9 @@ export class WorkflowBuilder {
     this.groups.forEach((group, groupId) => this._dissolveGroup(groupId));
     this.groups.clear();
     
+    // Clear existing node configs
+    this.nodeConfigs.clear();
+    
     this.drawflow.import(data);
     this._updateStats();
     this._saveToHistory();
@@ -1887,6 +2183,9 @@ export class WorkflowBuilder {
     
     // Restore groups after import
     this._restoreImportedGroups(data);
+    
+    // Restore node configs after import
+    this._restoreImportedNodeConfigs(data);
     
     this._setStatus('Workflow imported');
   }
@@ -2021,6 +2320,19 @@ export class WorkflowBuilder {
     }, 150);
   }
 
+  /**
+   * Restore node configs after importing workflow data
+   */
+  _restoreImportedNodeConfigs(data) {
+    if (!data?._nodeConfigs) {
+      return;
+    }
+    
+    Object.entries(data._nodeConfigs).forEach(([nodeId, config]) => {
+      this.nodeConfigs.set(String(nodeId), config);
+    });
+  }
+
 
   /**
    * --------------------------------------------------------------------------
@@ -2119,6 +2431,686 @@ export class WorkflowBuilder {
     this.container.innerHTML = '';
     this.container.classList.remove('workflow-builder', 'theme-light', 'theme-dark');
     this.drawflow = null;
+  }
+
+
+  // ============================================================================
+  // WORKFLOW EXECUTION
+  // ============================================================================
+
+  /**
+   * Setup executor event callbacks
+   */
+  _setupExecutorCallbacks() {
+    if (!this.executor) return;
+    
+    this.executor.onNodeStart = (nodeId, node) => {
+      console.log(`[Executor] Starting node ${nodeId}: ${node.name}`);
+    };
+    
+    this.executor.onNodeComplete = (nodeId, node, result) => {
+      console.log(`[Executor] Completed node ${nodeId}:`, result);
+      this._updateExecutionLog();
+    };
+    
+    this.executor.onNodeError = (nodeId, node, error) => {
+      console.error(`[Executor] Error in node ${nodeId}:`, error);
+      this._setStatus(`Error in ${node.name}: ${error.message}`);
+      this._updateExecutionLog();
+    };
+    
+    this.executor.onExecutionStart = () => {
+      this._setStatus('Workflow running...');
+      this._updateExecutionButtons(true);
+      this.showExecutionLog();
+      this._updateExecutionLog();
+    };
+    
+    this.executor.onExecutionComplete = (history, context) => {
+      this._setStatus(`Workflow completed (${history.length} steps)`);
+      this._updateExecutionButtons(false);
+      this._updateExecutionLog();
+    };
+    
+    this.executor.onExecutionError = (error) => {
+      this._setStatus(`Workflow error: ${error.message}`);
+      this._updateExecutionButtons(false);
+      this._updateExecutionLog();
+    };
+  }
+
+  /**
+   * Update execution control buttons state
+   */
+  _updateExecutionButtons(isRunning) {
+    const runBtn = this.container.querySelector('[data-action="exec-run"]');
+    const pauseBtn = this.container.querySelector('[data-action="exec-pause"]');
+    const stopBtn = this.container.querySelector('[data-action="exec-stop"]');
+    
+    if (runBtn) runBtn.disabled = isRunning;
+    if (pauseBtn) pauseBtn.disabled = !isRunning;
+    if (stopBtn) stopBtn.disabled = !isRunning;
+  }
+
+  /**
+   * Run the workflow
+   */
+  runWorkflow() {
+    if (!this.executor) {
+      this._setStatus('Executor not initialized');
+      return;
+    }
+    
+    this.executor.start();
+  }
+
+  /**
+   * Run workflow starting from a specific node
+   */
+  runFromNode(nodeId) {
+    if (!this.executor) {
+      this._setStatus('Executor not initialized');
+      return;
+    }
+    
+    const nodes = this.executor.getNodes();
+    const node = nodes[nodeId];
+    
+    if (!node) {
+      this._setStatus('Node not found');
+      return;
+    }
+    
+    // Reset and set running state
+    this.executor.reset();
+    this.executor.isRunning = true;
+    this.executor.isPaused = false;
+    this.executor.abortController = new AbortController();
+    
+    this.showExecutionLog();
+    this._updateExecutionButtons(true);
+    this._setStatus(`Running from: ${node.name}`);
+    
+    // Execute this node and continue from here
+    this.executor.executeFromNode(nodeId).then(() => {
+      this.executor.isRunning = false;
+      this._updateExecutionButtons(false);
+      this._updateExecutionLog();
+      this._setStatus('Workflow complete');
+    }).catch(err => {
+      console.error('Execution error:', err);
+      this.executor.isRunning = false;
+      this._updateExecutionButtons(false);
+      this._updateExecutionLog();
+    });
+  }
+
+  /**
+   * Run only the selected node (no continuation)
+   */
+  runSelectedOnly() {
+    const selectedNode = this.container.querySelector('.drawflow-node.selected');
+    if (!selectedNode) {
+      this._setStatus('No node selected');
+      return;
+    }
+    
+    const nodeId = selectedNode.id.replace('node-', '');
+    this.runSingleNode(nodeId);
+  }
+
+  /**
+   * Run a single node without continuing to connected nodes
+   */
+  runSingleNode(nodeId) {
+    if (!this.executor) {
+      this._setStatus('Executor not initialized');
+      return;
+    }
+    
+    const nodes = this.executor.getNodes();
+    const node = nodes[nodeId];
+    
+    if (!node) {
+      this._setStatus('Node not found');
+      return;
+    }
+    
+    // Reset and set running state
+    this.executor.reset();
+    this.executor.isRunning = true;
+    this.executor.abortController = new AbortController();
+    
+    this.showExecutionLog();
+    this._updateExecutionButtons(true);
+    this._setStatus(`Testing: ${node.name}`);
+    
+    // Execute just this one node
+    this.executor.executeNode(nodeId).then(result => {
+      this.executor.isRunning = false;
+      this._updateExecutionButtons(false);
+      this._setStatus(`Completed: ${node.name}`);
+      console.log('Single node result:', result);
+      this._updateExecutionLog();
+    }).catch(err => {
+      console.error('Execution error:', err);
+      this.executor.isRunning = false;
+      this._updateExecutionButtons(false);
+      this._updateExecutionLog();
+    });
+  }
+
+  /**
+   * Pause the workflow
+   */
+  pauseWorkflow() {
+    if (!this.executor) return;
+    
+    if (this.executor.isPaused) {
+      this.executor.resume();
+      this._setStatus('Workflow resumed');
+    } else {
+      this.executor.pause();
+      this._setStatus('Workflow paused');
+    }
+  }
+
+  /**
+   * Stop the workflow
+   */
+  stopWorkflow() {
+    if (!this.executor) return;
+    this.executor.stop();
+    this._setStatus('Workflow stopped');
+    this._updateExecutionButtons(false);
+  }
+
+  /**
+   * Reset workflow execution state
+   */
+  resetWorkflow() {
+    if (!this.executor) return;
+    this.executor.reset();
+    this._setStatus('Workflow reset');
+    this._updateExecutionButtons(false);
+    this._updateExecutionLog();
+  }
+
+  /**
+   * Toggle execution log panel visibility
+   */
+  toggleExecutionLog() {
+    const logPanel = this.container.querySelector('#execution-log-panel');
+    if (logPanel) {
+      logPanel.classList.toggle('visible');
+    }
+  }
+
+  /**
+   * Show execution log panel
+   */
+  showExecutionLog() {
+    const logPanel = this.container.querySelector('#execution-log-panel');
+    if (logPanel) {
+      logPanel.classList.add('visible');
+    }
+  }
+
+  /**
+   * Update execution log panel
+   */
+  _updateExecutionLog() {
+    const logPanel = this.container.querySelector('#execution-log-panel .log-panel-body');
+    if (!logPanel || !this.executor) return;
+    
+    const history = this.executor.getLog();
+    
+    if (history.length === 0) {
+      logPanel.innerHTML = '<div class="log-empty">No execution history yet.</div>';
+      return;
+    }
+    
+    logPanel.innerHTML = history.map((entry, i) => {
+      // Format CONFIG section
+      let configHtml = '';
+      if (entry.config && Object.keys(entry.config).length > 0) {
+        try {
+          const configStr = JSON.stringify(entry.config, null, 2);
+          configHtml = `
+            <div class="log-section">
+              <div class="log-section-header">📋 Request Config</div>
+              <pre class="log-code">${this._escapeHtml(configStr)}</pre>
+            </div>
+          `;
+        } catch (e) {}
+      }
+      
+      // Format RESPONSE section (full data)
+      let responseHtml = '';
+      if (entry.result && entry.status === 'success') {
+        const result = entry.result;
+        
+        // HTTP status if available
+        if (result.status) {
+          responseHtml += `<div class="log-http-badge ${result.ok ? 'success' : 'error'}">HTTP ${result.status} ${result.statusText || ''}</div>`;
+        }
+        
+        // Request details (echoed from HTTP executor)
+        if (result.request) {
+          try {
+            const reqStr = JSON.stringify(result.request, null, 2);
+            responseHtml += `
+              <div class="log-section log-collapsible">
+                <div class="log-section-header" onclick="this.parentElement.classList.toggle('collapsed')">📤 Request Sent ▼</div>
+                <pre class="log-code">${this._escapeHtml(reqStr)}</pre>
+              </div>
+            `;
+          } catch (e) {}
+        }
+        
+        // Response headers
+        if (result.headers && Object.keys(result.headers).length > 0) {
+          try {
+            const headersStr = JSON.stringify(result.headers, null, 2);
+            responseHtml += `
+              <div class="log-section log-collapsible collapsed">
+                <div class="log-section-header" onclick="this.parentElement.classList.toggle('collapsed')">📨 Response Headers ▼</div>
+                <pre class="log-code">${this._escapeHtml(headersStr)}</pre>
+              </div>
+            `;
+          } catch (e) {}
+        }
+        
+        // Response data
+        if (result.data !== undefined && result.data !== null) {
+          try {
+            const jsonStr = typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2);
+            responseHtml += `
+              <div class="log-section">
+                <div class="log-section-header">📥 Response Body</div>
+                <pre class="log-code">${this._escapeHtml(jsonStr)}</pre>
+              </div>
+            `;
+          } catch (e) {
+            responseHtml += `<div class="log-section"><pre class="log-code">${String(result.data)}</pre></div>`;
+          }
+        }
+        
+        // Any other result fields (like output path, message, etc.)
+        const excludeKeys = ['data', 'status', 'statusText', 'ok', 'output', 'headers', 'request', 'url'];
+        const otherFields = Object.entries(result).filter(([k]) => !excludeKeys.includes(k));
+        if (otherFields.length > 0) {
+          responseHtml += `
+            <div class="log-section">
+              <div class="log-section-header">ℹ️ Other Info</div>
+              <div class="log-fields">
+                ${otherFields.map(([k, v]) => `<div><strong>${k}:</strong> ${typeof v === 'object' ? JSON.stringify(v) : v}</div>`).join('')}
+              </div>
+            </div>
+          `;
+        }
+      }
+      
+      return `
+        <div class="log-entry log-${entry.status}" data-node-id="${entry.nodeId}">
+          <div class="log-entry-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <span class="log-num">#${i + 1}</span>
+            <span class="log-node">${entry.nodeName}</span>
+            <span class="log-status">${entry.status.toUpperCase()}</span>
+            <span class="log-time">${entry.duration}ms</span>
+            <span class="log-expand">▼</span>
+          </div>
+          <div class="log-entry-details">
+            ${entry.error ? `<div class="log-error-box">❌ Error: ${entry.error}</div>` : ''}
+            ${configHtml}
+            ${responseHtml}
+            <div class="log-timestamp">⏱️ ${entry.timestamp}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /**
+   * Get node configuration
+   */
+  getNodeConfig(nodeId) {
+    return this.nodeConfigs.get(String(nodeId)) || {};
+  }
+
+  /**
+   * Set node configuration
+   */
+  setNodeConfig(nodeId, config) {
+    this.nodeConfigs.set(String(nodeId), config);
+    this._triggerChange();
+  }
+
+  /**
+   * Show node config panel
+   */
+  showNodeConfigPanel(nodeId) {
+    const panel = this.container.querySelector('#node-config-panel');
+    const backdrop = this.container.querySelector('#config-panel-backdrop');
+    if (!panel) return;
+    
+    const nodes = this.executor.getNodes();
+    const node = nodes[nodeId];
+    
+    if (!node) {
+      this._setStatus('Node not found');
+      return;
+    }
+    
+    // Get schema for this node type
+    const schema = NodeExecutorRegistry.getConfigSchema(node.name);
+    const currentConfig = this.getNodeConfig(nodeId);
+    
+    // Build config form
+    const body = panel.querySelector('.config-panel-body');
+    body.innerHTML = this._buildConfigForm(schema, currentConfig, node.name);
+    
+    // Store current node ID for saving
+    panel.dataset.nodeId = nodeId;
+    
+    // Update header
+    const header = panel.querySelector('.config-panel-header h3');
+    header.textContent = `Configure: ${node.name}`;
+    
+    // Show backdrop and panel
+    if (backdrop) backdrop.classList.add('visible');
+    panel.classList.add('visible');
+    
+    // Setup conditional field visibility
+    this._setupConditionalFields(panel);
+  }
+
+  /**
+   * Build config form HTML from schema
+   */
+  _buildConfigForm(schema, currentConfig, nodeType) {
+    if (!schema || schema.length === 0) {
+      return `
+        <div class="config-empty">No predefined options for this node type.</div>
+        ${this._buildCustomFieldsSection(currentConfig)}
+      `;
+    }
+    
+    const schemaFields = schema.map(field => {
+      const value = currentConfig[field.key] !== undefined ? currentConfig[field.key] : (field.default || '');
+      const showIfAttr = field.showIf ? `data-show-if='${JSON.stringify(field.showIf)}'` : '';
+      const hint = this._getFieldHint(field);
+      
+      let inputHtml = '';
+      
+      switch (field.type) {
+        case 'text':
+          inputHtml = `<input type="text" name="${field.key}" value="${this._escapeHtml(value)}" placeholder="${field.placeholder || ''}">`;
+          break;
+          
+        case 'number':
+          inputHtml = `<input type="number" name="${field.key}" value="${value}">`;
+          break;
+          
+        case 'textarea':
+          inputHtml = `<textarea name="${field.key}" placeholder="${field.placeholder || ''}" rows="3">${this._escapeHtml(value)}</textarea>`;
+          break;
+          
+        case 'select':
+          const options = (field.options || []).map(opt => 
+            `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
+          ).join('');
+          inputHtml = `<select name="${field.key}">${options}</select>`;
+          break;
+          
+        case 'json':
+          const jsonValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
+          inputHtml = `<textarea name="${field.key}" class="config-json" placeholder="${field.placeholder || '{}'}" rows="4">${this._escapeHtml(jsonValue)}</textarea>`;
+          break;
+          
+        case 'code':
+          inputHtml = `<textarea name="${field.key}" class="config-code" placeholder="${field.placeholder || ''}" rows="6">${this._escapeHtml(value)}</textarea>`;
+          break;
+          
+        case 'checkbox':
+          inputHtml = `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" name="${field.key}" ${value ? 'checked' : ''}> Enable</label>`;
+          break;
+          
+        default:
+          inputHtml = `<input type="text" name="${field.key}" value="${this._escapeHtml(value)}">`;
+      }
+      
+      return `
+        <div class="config-field" ${showIfAttr}>
+          <label>${field.label}</label>
+          ${inputHtml}
+          ${hint ? `<span class="config-field-hint">${hint}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+    
+    return schemaFields + this._buildCustomFieldsSection(currentConfig, schema);
+  }
+  
+  /**
+   * Get hint text for a field
+   */
+  _getFieldHint(field) {
+    if (field.hint) return field.hint;
+    
+    // Auto hints based on field type or key
+    if (field.type === 'json') {
+      return 'Enter valid JSON. Supports {{variable}} interpolation.';
+    }
+    if (field.type === 'code') {
+      return 'Access context via `ctx`. Return value becomes output.';
+    }
+    if (field.key.includes('message') || field.key.includes('url') || field.key.includes('value')) {
+      return 'Use {{lastResult.data}}, {{node_1.field}}, or {{variableName}} for dynamic values.';
+    }
+    return '';
+  }
+  
+  /**
+   * Build custom fields section for arbitrary key-value pairs
+   */
+  _buildCustomFieldsSection(currentConfig, schema = []) {
+    // Get keys that are not in schema
+    const schemaKeys = schema.map(f => f.key);
+    const customFields = Object.entries(currentConfig || {})
+      .filter(([key]) => !schemaKeys.includes(key))
+      .map(([key, value]) => `
+        <div class="custom-field-row" data-key="${key}">
+          <input type="text" value="${this._escapeHtml(key)}" placeholder="Key" class="custom-field-key" readonly>
+          <input type="text" value="${this._escapeHtml(String(value))}" placeholder="Value" class="custom-field-value" name="custom_${key}">
+          <button type="button" class="remove-custom-field" title="Remove">×</button>
+        </div>
+      `).join('');
+    
+    return `
+      <div class="config-custom-fields">
+        <h4>Custom Fields</h4>
+        <div class="custom-fields-list">
+          ${customFields}
+        </div>
+        <div class="custom-field-row new-field-row">
+          <input type="text" placeholder="Key name" class="new-field-key">
+          <input type="text" placeholder="Value" class="new-field-value">
+          <button type="button" class="btn-add-field" title="Add">+</button>
+        </div>
+        <span class="config-field-hint" style="display:block;margin-top:8px;">Add any custom key-value pairs for this node's configuration.</span>
+      </div>
+    `;
+  }
+
+  /**
+   * Setup conditional field visibility
+   */
+  _setupConditionalFields(panel) {
+    const updateVisibility = () => {
+      const fields = panel.querySelectorAll('.config-field[data-show-if]');
+      fields.forEach(field => {
+        const showIf = JSON.parse(field.dataset.showIf);
+        let visible = true;
+        
+        for (const [key, expectedValue] of Object.entries(showIf)) {
+          const input = panel.querySelector(`[name="${key}"]`);
+          if (input && input.value !== expectedValue) {
+            visible = false;
+            break;
+          }
+        }
+        
+        field.style.display = visible ? 'block' : 'none';
+      });
+    };
+    
+    // Initial update
+    updateVisibility();
+    
+    // Listen for changes
+    panel.querySelectorAll('select, input').forEach(el => {
+      el.addEventListener('change', updateVisibility);
+    });
+  }
+
+  /**
+   * Hide node config panel
+   */
+  hideNodeConfigPanel() {
+    const panel = this.container.querySelector('#node-config-panel');
+    const backdrop = this.container.querySelector('#config-panel-backdrop');
+    if (panel) {
+      panel.classList.remove('visible');
+    }
+    if (backdrop) {
+      backdrop.classList.remove('visible');
+    }
+  }
+
+  /**
+   * Save node config from panel
+   */
+  saveNodeConfig() {
+    const panel = this.container.querySelector('#node-config-panel');
+    if (!panel) return;
+    
+    const nodeId = panel.dataset.nodeId;
+    if (!nodeId) return;
+    
+    const config = {};
+    
+    // Get schema-based inputs
+    const inputs = panel.querySelectorAll('.config-field input, .config-field textarea, .config-field select');
+    
+    inputs.forEach(input => {
+      const name = input.name;
+      if (!name) return;
+      
+      if (input.type === 'checkbox') {
+        config[name] = input.checked;
+      } else if (input.classList.contains('config-json')) {
+        try {
+          config[name] = JSON.parse(input.value || '{}');
+        } catch (e) {
+          config[name] = input.value;
+        }
+      } else {
+        config[name] = input.value;
+      }
+    });
+    
+    // Get custom fields
+    const customFieldRows = panel.querySelectorAll('.custom-field-row[data-key]');
+    customFieldRows.forEach(row => {
+      const key = row.dataset.key;
+      const valueInput = row.querySelector('.custom-field-value');
+      if (key && valueInput) {
+        config[key] = valueInput.value;
+      }
+    });
+    
+    this.setNodeConfig(nodeId, config);
+    this.hideNodeConfigPanel();
+    this._setStatus('Node configuration saved');
+  }
+
+  /**
+   * Helper to escape HTML
+   */
+  _escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /**
+   * Show config tooltip on node hover
+   */
+  _showConfigTooltip(nodeId, nodeEl) {
+    const tooltip = this.container.querySelector('#node-config-tooltip');
+    if (!tooltip) return;
+    
+    const nodes = this.executor.getNodes();
+    const node = nodes[nodeId];
+    if (!node) return;
+    
+    const config = this.getNodeConfig(nodeId);
+    const configEntries = Object.entries(config || {});
+    
+    // Build tooltip content
+    let content = `<div class="tooltip-header">${node.name}</div>`;
+    
+    if (configEntries.length === 0) {
+      content += '<div class="tooltip-empty">No configuration set.<br><small>Double-click to configure</small></div>';
+    } else {
+      content += '<div class="tooltip-config">';
+      configEntries.slice(0, 6).forEach(([key, value]) => {
+        let displayValue = value;
+        if (typeof value === 'object') {
+          displayValue = JSON.stringify(value).substring(0, 30) + '...';
+        } else if (typeof value === 'string' && value.length > 40) {
+          displayValue = value.substring(0, 40) + '...';
+        }
+        content += `<div class="tooltip-row"><span class="tooltip-key">${key}:</span> <span class="tooltip-value">${this._escapeHtml(String(displayValue))}</span></div>`;
+      });
+      if (configEntries.length > 6) {
+        content += `<div class="tooltip-more">+${configEntries.length - 6} more...</div>`;
+      }
+      content += '</div>';
+    }
+    
+    tooltip.innerHTML = content;
+    
+    // Position tooltip
+    const rect = nodeEl.getBoundingClientRect();
+    const containerRect = this.container.getBoundingClientRect();
+    
+    let left = rect.right - containerRect.left + 10;
+    let top = rect.top - containerRect.top;
+    
+    // Keep tooltip within container
+    if (left + 250 > containerRect.width) {
+      left = rect.left - containerRect.left - 260;
+    }
+    
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+    tooltip.classList.add('visible');
+  }
+
+  /**
+   * Hide config tooltip
+   */
+  _hideConfigTooltip() {
+    const tooltip = this.container.querySelector('#node-config-tooltip');
+    if (tooltip) {
+      tooltip.classList.remove('visible');
+    }
   }
 
 
@@ -2816,6 +3808,11 @@ export class WorkflowBuilder {
     const menu = document.createElement('div');
     menu.className = 'workflow-context-menu';
     menu.innerHTML = `
+      <div class="context-menu-item" data-action="configure">⚙️ Configure Node</div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="run-single">▶ Test This Node Only</div>
+      <div class="context-menu-item" data-action="run-from-here">▶▶ Run Workflow From Here</div>
+      <div class="context-menu-divider"></div>
       <div class="context-menu-item" data-action="copy">Copy</div>
       <div class="context-menu-item" data-action="paste">Paste</div>
       <div class="context-menu-item" data-action="duplicate">Duplicate</div>
@@ -2955,6 +3952,21 @@ export class WorkflowBuilder {
       const action = item.dataset.action;
       
       switch (action) {
+        case 'configure':
+          if (this.contextMenuNodeId) {
+            this.showNodeConfigPanel(this.contextMenuNodeId);
+          }
+          break;
+        case 'run-single':
+          if (this.contextMenuNodeId) {
+            this.runSingleNode(this.contextMenuNodeId);
+          }
+          break;
+        case 'run-from-here':
+          if (this.contextMenuNodeId) {
+            this.runFromNode(this.contextMenuNodeId);
+          }
+          break;
         case 'copy':
           this.copySelected();
           break;
@@ -5736,5 +6748,250 @@ export class WorkflowBuilder {
         document.body.style.cursor = '';
       }
     });
+  }
+
+  // ============================================================================
+  // EXAMPLE WORKFLOWS
+  // ============================================================================
+
+  /**
+   * Toggle the examples dropdown menu
+   */
+  _toggleExamplesDropdown(forceClose = null) {
+    const menu = this.container.querySelector('#examples-menu');
+    const dropdown = this.container.querySelector('#examples-dropdown');
+    if (!menu || !dropdown) return;
+    
+    const isOpen = menu.classList.contains('visible');
+    
+    if (forceClose === true || (forceClose === null && isOpen)) {
+      menu.classList.remove('visible');
+      dropdown.classList.remove('open');
+    } else if (forceClose === false || !isOpen) {
+      menu.classList.add('visible');
+      dropdown.classList.add('open');
+    }
+  }
+
+  /**
+   * Load an example workflow
+   */
+  _loadExample(exampleId) {
+    const examples = this._getExampleWorkflows();
+    const example = examples[exampleId];
+    
+    if (!example) {
+      this._setStatus('Example not found');
+      return;
+    }
+    
+    // Confirm if there's existing work
+    const nodes = this.drawflow.export()?.drawflow?.Home?.data || {};
+    if (Object.keys(nodes).length > 0) {
+      if (!confirm(`Load "${example.name}" example? This will clear your current workflow.`)) {
+        return;
+      }
+    }
+    
+    // Clear and load
+    this.clear();
+    
+    // Create nodes
+    const nodeIdMap = {}; // oldId -> newId
+    example.nodes.forEach(node => {
+      const id = this.drawflow.addNode(
+        node.type,
+        node.inputs || 1,
+        node.outputs || 1,
+        node.x,
+        node.y,
+        node.type,
+        {},
+        this._createNodeTemplate(node.type, this.nodeRegistry.get(node.type))
+      );
+      nodeIdMap[node.id] = id;
+      
+      // Set config
+      if (node.config) {
+        this.setNodeConfig(id, node.config);
+      }
+    });
+    
+    // Create connections
+    example.connections.forEach(conn => {
+      const fromId = nodeIdMap[conn.from];
+      const toId = nodeIdMap[conn.to];
+      if (fromId && toId) {
+        this.drawflow.addConnection(fromId, toId, conn.fromOutput || 'output_1', conn.toInput || 'input_1');
+      }
+    });
+    
+    this._updateStats();
+    this._saveToHistory();
+    this._setStatus(`Loaded: ${example.name}`);
+  }
+
+  /**
+   * Get example workflow definitions
+   */
+  _getExampleWorkflows() {
+    return {
+      'api-test': {
+        name: 'API Request Test',
+        description: 'Simple API call with response handling',
+        nodes: [
+          { id: 1, type: 'trigger', x: 100, y: 200, inputs: 0, outputs: 1, config: { triggerType: 'manual' } },
+          { id: 2, type: 'http', x: 350, y: 200, inputs: 1, outputs: 1, config: {
+            method: 'GET',
+            url: 'https://jsonplaceholder.typicode.com/todos/1',
+            headers: '{"Accept": "application/json"}'
+          }},
+          { id: 3, type: 'transform', x: 600, y: 200, inputs: 1, outputs: 1, config: {
+            transformType: 'javascript',
+            code: 'return { title: data.title, completed: data.completed };'
+          }},
+          { id: 4, type: 'end', x: 850, y: 200, inputs: 1, outputs: 0 }
+        ],
+        connections: [
+          { from: 1, to: 2 },
+          { from: 2, to: 3 },
+          { from: 3, to: 4 }
+        ]
+      },
+      
+      'data-pipeline': {
+        name: 'Data Pipeline',
+        description: 'Fetch, transform, and filter data',
+        nodes: [
+          { id: 1, type: 'trigger', x: 100, y: 250, inputs: 0, outputs: 1 },
+          { id: 2, type: 'http', x: 300, y: 250, inputs: 1, outputs: 1, config: {
+            method: 'GET',
+            url: 'https://jsonplaceholder.typicode.com/users'
+          }},
+          { id: 3, type: 'filter', x: 500, y: 250, inputs: 1, outputs: 1, config: {
+            filterType: 'field_match',
+            field: 'address.city',
+            operator: 'not_empty'
+          }},
+          { id: 4, type: 'transform', x: 700, y: 250, inputs: 1, outputs: 1, config: {
+            transformType: 'javascript',
+            code: 'return data.map(u => ({ name: u.name, email: u.email, city: u.address.city }));'
+          }},
+          { id: 5, type: 'end', x: 900, y: 250, inputs: 1, outputs: 0 }
+        ],
+        connections: [
+          { from: 1, to: 2 },
+          { from: 2, to: 3 },
+          { from: 3, to: 4 },
+          { from: 4, to: 5 }
+        ]
+      },
+      
+      'condition-flow': {
+        name: 'Conditional Flow',
+        description: 'Branch workflow based on API response',
+        nodes: [
+          { id: 1, type: 'trigger', x: 100, y: 300, inputs: 0, outputs: 1 },
+          { id: 2, type: 'http', x: 300, y: 300, inputs: 1, outputs: 1, config: {
+            method: 'GET',
+            url: 'https://jsonplaceholder.typicode.com/todos/1'
+          }},
+          { id: 3, type: 'condition', x: 500, y: 300, inputs: 1, outputs: 2, config: {
+            conditionType: 'field',
+            field: 'completed',
+            operator: 'equals',
+            value: 'true'
+          }},
+          { id: 4, type: 'action', x: 700, y: 200, inputs: 1, outputs: 1, config: {} },
+          { id: 5, type: 'action', x: 700, y: 400, inputs: 1, outputs: 1, config: {} },
+          { id: 6, type: 'end', x: 900, y: 300, inputs: 1, outputs: 0 }
+        ],
+        connections: [
+          { from: 1, to: 2 },
+          { from: 2, to: 3 },
+          { from: 3, to: 4, fromOutput: 'output_1' },
+          { from: 3, to: 5, fromOutput: 'output_2' },
+          { from: 4, to: 6 },
+          { from: 5, to: 6 }
+        ]
+      },
+      
+      'loop-example': {
+        name: 'Loop Through Data',
+        description: 'Iterate over array items',
+        nodes: [
+          { id: 1, type: 'trigger', x: 100, y: 250, inputs: 0, outputs: 1, config: {
+            initialData: '{"items": [1, 2, 3, 4, 5]}'
+          }},
+          { id: 2, type: 'loop', x: 300, y: 250, inputs: 1, outputs: 2, config: {
+            loopType: 'array',
+            arrayPath: 'items'
+          }},
+          { id: 3, type: 'transform', x: 500, y: 200, inputs: 1, outputs: 1, config: {
+            transformType: 'javascript',
+            code: 'return { value: data * 2 };'
+          }},
+          { id: 4, type: 'end', x: 500, y: 350, inputs: 1, outputs: 0 }
+        ],
+        connections: [
+          { from: 1, to: 2 },
+          { from: 2, to: 3, fromOutput: 'output_1' },
+          { from: 2, to: 4, fromOutput: 'output_2' },
+          { from: 3, to: 2 }
+        ]
+      },
+      
+      'notification-flow': {
+        name: 'Notification Flow',
+        description: 'Send email/Slack based on API data',
+        nodes: [
+          { id: 1, type: 'trigger', x: 100, y: 250, inputs: 0, outputs: 1 },
+          { id: 2, type: 'http', x: 300, y: 250, inputs: 1, outputs: 1, config: {
+            method: 'GET',
+            url: 'https://jsonplaceholder.typicode.com/posts/1'
+          }},
+          { id: 3, type: 'email', x: 500, y: 150, inputs: 1, outputs: 1, config: {
+            to: 'user@example.com',
+            subject: 'New Post: {{lastResult.data.title}}',
+            body: '{{lastResult.data.body}}'
+          }},
+          { id: 4, type: 'slack', x: 500, y: 350, inputs: 1, outputs: 1, config: {
+            channel: '#notifications',
+            message: 'New post created: {{lastResult.data.title}}'
+          }},
+          { id: 5, type: 'end', x: 700, y: 250, inputs: 1, outputs: 0 }
+        ],
+        connections: [
+          { from: 1, to: 2 },
+          { from: 2, to: 3 },
+          { from: 2, to: 4 },
+          { from: 3, to: 5 },
+          { from: 4, to: 5 }
+        ]
+      },
+      
+      'error-handling': {
+        name: 'Error Handling',
+        description: 'Handle API errors gracefully',
+        nodes: [
+          { id: 1, type: 'trigger', x: 100, y: 250, inputs: 0, outputs: 1 },
+          { id: 2, type: 'http', x: 300, y: 250, inputs: 1, outputs: 2, config: {
+            method: 'GET',
+            url: 'https://httpstat.us/500',
+            ignore_errors: false
+          }},
+          { id: 3, type: 'action', x: 550, y: 150, inputs: 1, outputs: 1, config: {} },
+          { id: 4, type: 'action', x: 550, y: 350, inputs: 1, outputs: 1, config: {} },
+          { id: 5, type: 'end', x: 750, y: 250, inputs: 1, outputs: 0 }
+        ],
+        connections: [
+          { from: 1, to: 2 },
+          { from: 2, to: 3, fromOutput: 'output_1' },
+          { from: 2, to: 4, fromOutput: 'output_2' },
+          { from: 3, to: 5 },
+          { from: 4, to: 5 }
+        ]
+      }
+    };
   }
 }

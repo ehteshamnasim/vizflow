@@ -1,18 +1,18 @@
 /**
  * ============================================================================
- * WORKFLOW BUILDER - MAIN ENTRY POINT
+ * FLOWKIT - MAIN ENTRY POINT
  * ============================================================================
  * 
- * This is the main entry file for the Workflow Builder package.
+ * This is the main entry file for FlowKit - Visual Workflow Builder.
  * It exports all public APIs that consumers of this package will use.
  * 
  * USAGE EXAMPLE:
  * 
- *   import { WorkflowBuilder } from '@yourcompany/workflow-builder';
+ *   import { WorkflowBuilder } from 'flowkit';
  *   
  *   const workflow = new WorkflowBuilder('#container', {
  *     theme: 'dark',
- *     nodes: ['trigger', 'email', 'condition']
+ *     nodes: ['trigger', 'http', 'condition', 'slack']
  *   });
  * 
  * ============================================================================

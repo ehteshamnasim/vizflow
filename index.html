@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Workflow Builder</title>
+  <title>FlowKit - Visual Workflow Builder</title>
   <style>
     * {
       margin: 0;
@@ -73,21 +73,94 @@
       onSave: (data) => console.log('Workflow saved:', data)
     });
     
-    // Create example workflow
+    // Create example workflow with execution configurations
     setTimeout(() => {
+      // Create nodes for main test flow
       const triggerId = workflow.addNode('trigger', 100, 140);
-      const conditionId = workflow.addNode('condition', 380, 140);
-      const emailId = workflow.addNode('email', 660, 80);
-      const delayId = workflow.addNode('delay', 660, 250);
+      const actionId = workflow.addNode('action', 350, 140);
+      const conditionId = workflow.addNode('condition', 600, 140);
+      const successId = workflow.addNode('action', 850, 60);
+      const failId = workflow.addNode('action', 850, 220);
       
       // Connect nodes
-      workflow.connect(triggerId, conditionId);
-      workflow.connect(conditionId, emailId);
-      workflow.connect(conditionId, delayId);
+      workflow.connect(triggerId, actionId);
+      workflow.connect(actionId, conditionId);
+      workflow.connect(conditionId, successId, 1, 1);  // output_1 (true branch)
+      workflow.connect(conditionId, failId, 2, 1);     // output_2 (false branch)
       
-      console.log('Workflow Builder ready!');
-      console.log('Try: workflow.setMode("view") to switch to view mode');
-      console.log('Try: workflow.setMode("edit") to switch back to edit mode');
+      // Configure nodes for execution
+      workflow.setNodeConfig(triggerId, {
+        triggerType: 'manual',
+        initialData: JSON.stringify({ message: 'Hello Workflow!', count: 5, items: ['a', 'b', 'c'] }),
+        description: 'Start of the workflow'
+      });
+      
+      workflow.setNodeConfig(actionId, {
+        actionType: 'log',
+        log_message: 'Processing: {{lastResult.data.message}} (count: {{lastResult.data.count}})'
+      });
+      
+      workflow.setNodeConfig(conditionId, {
+        conditionType: 'compare',
+        compare_left: '{{lastResult.data.count}}',
+        compare_operator: '>',
+        compare_right: '3'
+      });
+      
+      workflow.setNodeConfig(successId, {
+        actionType: 'log',
+        log_message: '✅ Condition passed! Count is greater than 3'
+      });
+      
+      workflow.setNodeConfig(failId, {
+        actionType: 'log',
+        log_message: '❌ Condition failed! Count is 3 or less'
+      });
+      
+      // Create additional example nodes (not connected) to show different configs
+      const httpId = workflow.addNode('http', 100, 350);
+      workflow.setNodeConfig(httpId, {
+        method: 'GET',
+        url: 'https://jsonplaceholder.typicode.com/todos/1',
+        headers: '{"Accept": "application/json"}',
+        timeout_seconds: 30
+      });
+      
+      const emailId = workflow.addNode('email', 350, 350);
+      workflow.setNodeConfig(emailId, {
+        to: 'user@example.com',
+        subject: 'Workflow Notification',
+        body: 'The workflow completed with result: {{lastResult.data}}'
+      });
+      
+      const delayId = workflow.addNode('delay', 600, 350);
+      workflow.setNodeConfig(delayId, {
+        delayType: 'seconds',
+        seconds: 2
+      });
+      
+      console.log('');
+      console.log('╔══════════════════════════════════════════════════════════════╗');
+      console.log('║             WORKFLOW EXECUTOR READY                          ║');
+      console.log('╠══════════════════════════════════════════════════════════════╣');
+      console.log('║  CONTROLS:                                                   ║');
+      console.log('║  ▶ Play    - Run the workflow                                ║');
+      console.log('║  ⏸ Pause   - Pause execution                                 ║');
+      console.log('║  ⏹ Stop    - Stop execution                                  ║');
+      console.log('║  ↺ Reset   - Clear execution state                           ║');
+      console.log('║  📋 Log    - Toggle execution log                            ║');
+      console.log('╠══════════════════════════════════════════════════════════════╣');
+      console.log('║  CONFIGURE NODES:                                            ║');
+      console.log('║  • Double-click any node to configure                        ║');
+      console.log('║  • Right-click → Configure Node                              ║');
+      console.log('║  • Hover over nodes to see config summary                    ║');
+      console.log('╠══════════════════════════════════════════════════════════════╣');
+      console.log('║  NODE TYPES WITH SPECIFIC CONFIGS:                           ║');
+      console.log('║  trigger, action, condition, loop, transform, end            ║');
+      console.log('║  http, api, webhook, email, slack, delay                     ║');
+      console.log('║  database, mongodb, redis, code, filter                      ║');
+      console.log('╚══════════════════════════════════════════════════════════════╝');
+      console.log('');
     }, 300);
     
     window.workflow = workflow;
