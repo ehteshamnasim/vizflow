@@ -138,8 +138,8 @@ export const defaultNodeTypes = {
   slack: { label: 'Slack', icon: icons.slack, color: '#4A154B', inputs: 1, outputs: 1, fields: [{ name: 'channel', label: 'Channel', type: 'text', default: '#general' }] },
   
   // Data transformation nodes
-  transform: { label: 'Transform', icon: icons.transform, color: '#00BCD4', inputs: 1, outputs: 1, fields: [{ name: 'expr', label: 'Expression', type: 'textarea', default: '' }] },
-  filter: { label: 'Filter', icon: icons.filter, color: '#8B5CF6', inputs: 1, outputs: 1, fields: [{ name: 'condition', label: 'Condition', type: 'text', default: '' }] },
+  transform: { label: 'Transform', icon: icons.transform, color: '#00BCD4', inputs: 1, outputs: 1, fields: [] },
+  filter: { label: 'Filter', icon: icons.filter, color: '#8B5CF6', inputs: 1, outputs: 1, fields: [] },
   merge: { label: 'Merge', icon: icons.merge, color: '#F59E0B', inputs: 2, outputs: 1, fields: [] },
   json: { label: 'JSON', icon: icons.json, color: '#6B7280', inputs: 1, outputs: 1, fields: [{ name: 'data', label: 'Data', type: 'textarea', default: '{}' }] },
   

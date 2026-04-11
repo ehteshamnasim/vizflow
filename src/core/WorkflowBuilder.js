@@ -1014,6 +1014,7 @@ export class WorkflowBuilder {
 
     /**
      * Handle drag over canvas (allow drop)
+     * Listen on both the wrapper and the inner drawflow element
      */
     canvas.addEventListener('dragover', (event) => {
       event.preventDefault();
@@ -1033,15 +1034,42 @@ export class WorkflowBuilder {
        * Calculate drop position relative to canvas
        * Account for canvas pan/zoom transformations
        */
-      const canvasRect = canvas.getBoundingClientRect();
-      const x = (event.clientX - canvasRect.left) / this.drawflow.zoom - this.drawflow.canvas_x / this.drawflow.zoom;
-      const y = (event.clientY - canvasRect.top) / this.drawflow.zoom - this.drawflow.canvas_y / this.drawflow.zoom;
+      const drawflowEl = this.container.querySelector('#drawflow-canvas .drawflow');
+      const rect = drawflowEl ? drawflowEl.getBoundingClientRect() : canvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / this.drawflow.zoom;
+      const y = (event.clientY - rect.top) / this.drawflow.zoom;
 
       /**
        * Add the node to the workflow
        */
       this.addNode(nodeType, x, y);
     });
+    
+    /**
+     * Also attach events to inner drawflow element once it's created
+     */
+    setTimeout(() => {
+      const drawflowEl = this.container.querySelector('#drawflow-canvas .drawflow');
+      if (drawflowEl) {
+        drawflowEl.addEventListener('dragover', (event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+        });
+        
+        drawflowEl.addEventListener('drop', (event) => {
+          event.preventDefault();
+          
+          const nodeType = event.dataTransfer.getData('nodeType');
+          if (!nodeType) return;
+
+          const rect = drawflowEl.getBoundingClientRect();
+          const x = (event.clientX - rect.left) / this.drawflow.zoom;
+          const y = (event.clientY - rect.top) / this.drawflow.zoom;
+
+          this.addNode(nodeType, x, y);
+        });
+      }
+    }, 100);
   }
 
 
