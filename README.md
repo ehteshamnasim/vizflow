@@ -4,7 +4,7 @@ A powerful visual workflow builder with execution engine, API testing, and full 
 
 **[Live Demo](https://flowkit-app.netlify.app/)**
 
-## ✨ Features
+## Features
 
 ### Core Workflow Builder
 - **Drag & Drop Interface** - Intuitive node placement and connection drawing
@@ -14,7 +14,7 @@ A powerful visual workflow builder with execution engine, API testing, and full 
 - **Node Grouping** - Group nodes together, collapse/expand groups
 - **Dark/Light Themes** - Built-in theme support
 
-### 🚀 Workflow Execution
+### Workflow Execution
 - **Real Execution Engine** - Actually runs your workflows
 - **HTTP Requests** - Make real API calls with full request/response capture
 - **Variable Interpolation** - Use `{{node_1.data}}` or `{{lastResult.field}}`
@@ -22,7 +22,7 @@ A powerful visual workflow builder with execution engine, API testing, and full 
 - **Loops** - Iterate over arrays
 - **Code Execution** - Run JavaScript code in nodes
 
-### 🔍 Debugging & Testing
+### Debugging & Testing
 - **Test Single Node** - Right-click → "Test This Node Only"
 - **Run From Node** - Right-click → "Run Workflow From Here"
 - **Full Execution Log** - See every request/response with headers
@@ -30,7 +30,7 @@ A powerful visual workflow builder with execution engine, API testing, and full 
 - **Response Headers** - View all HTTP response headers
 - **Expandable Details** - Click log entries to see full JSON
 
-### 📦 Import/Export
+### Import/Export
 - **JSON Export** - Download workflows as JSON files
 - **JSON Import** - Load workflows from files
 - **Includes Configs** - Node configurations are preserved

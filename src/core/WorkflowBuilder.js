@@ -377,27 +377,27 @@ export class WorkflowBuilder {
         -->
         <header class="workflow-header">
           <div class="workflow-title">
-            <span class="workflow-icon">⚡</span>
+            <span class="workflow-icon">FK</span>
             <h1>FlowKit</h1>
           </div>
           <div class="workflow-actions">
             <div class="dropdown" id="examples-dropdown">
               <button class="btn btn-secondary dropdown-toggle" data-action="toggle-examples">
-                📚 Examples
+                Examples
                 <span class="dropdown-arrow">▼</span>
               </button>
               <div class="dropdown-menu" id="examples-menu">
-                <div class="dropdown-item" data-example="api-test">🌐 API Request Test</div>
-                <div class="dropdown-item" data-example="data-pipeline">🔄 Data Pipeline</div>
-                <div class="dropdown-item" data-example="condition-flow">🔀 Conditional Flow</div>
-                <div class="dropdown-item" data-example="loop-example">🔁 Loop Through Data</div>
-                <div class="dropdown-item" data-example="notification-flow">📧 Notification Flow</div>
-                <div class="dropdown-item" data-example="error-handling">⚠️ Error Handling</div>
+                <div class="dropdown-item" data-example="api-test">API Request Test</div>
+                <div class="dropdown-item" data-example="data-pipeline">Data Pipeline</div>
+                <div class="dropdown-item" data-example="condition-flow">Conditional Flow</div>
+                <div class="dropdown-item" data-example="loop-example">Loop Through Data</div>
+                <div class="dropdown-item" data-example="notification-flow">Notification Flow</div>
+                <div class="dropdown-item" data-example="error-handling">Error Handling</div>
                 <div class="dropdown-divider"></div>
-                <div class="dropdown-item" data-example="full-api-workflow">🚀 Full API Workflow</div>
-                <div class="dropdown-item" data-example="data-enrichment">📊 Data Enrichment</div>
-                <div class="dropdown-item" data-example="multi-channel-notify">📢 Multi-Channel Alert</div>
-                <div class="dropdown-item" data-example="etl-pipeline">🔧 ETL Pipeline</div>
+                <div class="dropdown-item" data-example="full-api-workflow">Full API Workflow</div>
+                <div class="dropdown-item" data-example="data-enrichment">Data Enrichment</div>
+                <div class="dropdown-item" data-example="multi-channel-notify">Multi-Channel Alert</div>
+                <div class="dropdown-item" data-example="etl-pipeline">ETL Pipeline</div>
               </div>
             </div>
             <button class="btn btn-secondary" data-action="validate">Validate</button>
@@ -457,7 +457,7 @@ export class WorkflowBuilder {
               </div>
               <div class="toggle-controls">
                 <button class="toolbar-btn toggle-btn" data-action="toggle-minimap" title="Toggle Minimap">
-                  <span>🗺</span>
+                  <span>M</span>
                 </button>
                 <button class="toolbar-btn toggle-btn" data-action="toggle-snap" title="Toggle Snap to Grid">
                   <span>⊞</span>
@@ -488,7 +488,7 @@ export class WorkflowBuilder {
                   <span>↺</span>
                 </button>
                 <button class="toolbar-btn exec-btn" data-action="exec-log" title="Toggle Execution Log">
-                  <span>📋</span>
+                  <span>L</span>
                 </button>
               </div>
             </div>
@@ -2701,7 +2701,7 @@ export class WorkflowBuilder {
           const configStr = JSON.stringify(entry.config, null, 2);
           configHtml = `
             <div class="log-section">
-              <div class="log-section-header">📋 Request Config</div>
+              <div class="log-section-header">Request Config</div>
               <pre class="log-code">${this._escapeHtml(configStr)}</pre>
             </div>
           `;
@@ -2724,7 +2724,7 @@ export class WorkflowBuilder {
             const reqStr = JSON.stringify(result.request, null, 2);
             responseHtml += `
               <div class="log-section log-collapsible">
-                <div class="log-section-header" onclick="this.parentElement.classList.toggle('collapsed')">📤 Request Sent ▼</div>
+                <div class="log-section-header" onclick="this.parentElement.classList.toggle('collapsed')">Request Sent</div>
                 <pre class="log-code">${this._escapeHtml(reqStr)}</pre>
               </div>
             `;
@@ -2737,7 +2737,7 @@ export class WorkflowBuilder {
             const headersStr = JSON.stringify(result.headers, null, 2);
             responseHtml += `
               <div class="log-section log-collapsible collapsed">
-                <div class="log-section-header" onclick="this.parentElement.classList.toggle('collapsed')">📨 Response Headers ▼</div>
+                <div class="log-section-header" onclick="this.parentElement.classList.toggle('collapsed')">Response Headers</div>
                 <pre class="log-code">${this._escapeHtml(headersStr)}</pre>
               </div>
             `;
@@ -2750,7 +2750,7 @@ export class WorkflowBuilder {
             const jsonStr = typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2);
             responseHtml += `
               <div class="log-section">
-                <div class="log-section-header">📥 Response Body</div>
+                <div class="log-section-header">Response Body</div>
                 <pre class="log-code">${this._escapeHtml(jsonStr)}</pre>
               </div>
             `;
@@ -2765,7 +2765,7 @@ export class WorkflowBuilder {
         if (otherFields.length > 0) {
           responseHtml += `
             <div class="log-section">
-              <div class="log-section-header">ℹ️ Other Info</div>
+              <div class="log-section-header">Other Info</div>
               <div class="log-fields">
                 ${otherFields.map(([k, v]) => `<div><strong>${k}:</strong> ${typeof v === 'object' ? JSON.stringify(v) : v}</div>`).join('')}
               </div>
@@ -2784,10 +2784,10 @@ export class WorkflowBuilder {
             <span class="log-expand">▼</span>
           </div>
           <div class="log-entry-details">
-            ${entry.error ? `<div class="log-error-box">❌ Error: ${entry.error}</div>` : ''}
+            ${entry.error ? `<div class="log-error-box">Error: ${entry.error}</div>` : ''}
             ${configHtml}
             ${responseHtml}
-            <div class="log-timestamp">⏱️ ${entry.timestamp}</div>
+            <div class="log-timestamp">${entry.timestamp}</div>
           </div>
         </div>
       `;
@@ -3831,7 +3831,7 @@ export class WorkflowBuilder {
     const menu = document.createElement('div');
     menu.className = 'workflow-context-menu';
     menu.innerHTML = `
-      <div class="context-menu-item" data-action="configure">⚙️ Configure Node</div>
+      <div class="context-menu-item" data-action="configure">Configure Node</div>
       <div class="context-menu-divider"></div>
       <div class="context-menu-item" data-action="run-single">▶ Test This Node Only</div>
       <div class="context-menu-item" data-action="run-from-here">▶▶ Run Workflow From Here</div>
@@ -6104,7 +6104,7 @@ export class WorkflowBuilder {
     
     const html = `
       <div class="collapsed-group-content" style="border-left: 4px solid ${color};">
-        <div class="collapsed-group-icon">📦</div>
+        <div class="collapsed-group-icon">G</div>
         <div class="collapsed-group-info">
           <div class="collapsed-group-label">${label}</div>
           <div class="collapsed-group-count">${nodeCount} nodes</div>
@@ -7254,16 +7254,16 @@ export class WorkflowBuilder {
         description: 'Simple API call with response handling',
         nodes: [
           { id: 1, type: 'trigger', x: 100, y: 200, inputs: 0, outputs: 1, config: { triggerType: 'manual' } },
-          { id: 2, type: 'http', x: 350, y: 200, inputs: 1, outputs: 1, config: {
+          { id: 2, type: 'http', x: 400, y: 200, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/todos/1',
             headers: '{"Accept": "application/json"}'
           }},
-          { id: 3, type: 'transform', x: 600, y: 200, inputs: 1, outputs: 1, config: {
+          { id: 3, type: 'transform', x: 700, y: 200, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
             code: 'return { title: data.title, completed: data.completed };'
           }},
-          { id: 4, type: 'end', x: 850, y: 200, inputs: 1, outputs: 0 }
+          { id: 4, type: 'end', x: 1000, y: 200, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7277,20 +7277,20 @@ export class WorkflowBuilder {
         description: 'Fetch, transform, and filter data',
         nodes: [
           { id: 1, type: 'trigger', x: 100, y: 250, inputs: 0, outputs: 1 },
-          { id: 2, type: 'http', x: 300, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 2, type: 'http', x: 380, y: 250, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/users'
           }},
-          { id: 3, type: 'filter', x: 500, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 3, type: 'filter', x: 660, y: 250, inputs: 1, outputs: 1, config: {
             filterType: 'field_match',
             field: 'address.city',
             operator: 'not_empty'
           }},
-          { id: 4, type: 'transform', x: 700, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 4, type: 'transform', x: 940, y: 250, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
             code: 'return data.map(u => ({ name: u.name, email: u.email, city: u.address.city }));'
           }},
-          { id: 5, type: 'end', x: 900, y: 250, inputs: 1, outputs: 0 }
+          { id: 5, type: 'end', x: 1220, y: 250, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7305,19 +7305,19 @@ export class WorkflowBuilder {
         description: 'Branch workflow based on API response',
         nodes: [
           { id: 1, type: 'trigger', x: 100, y: 300, inputs: 0, outputs: 1 },
-          { id: 2, type: 'http', x: 300, y: 300, inputs: 1, outputs: 1, config: {
+          { id: 2, type: 'http', x: 380, y: 300, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/todos/1'
           }},
-          { id: 3, type: 'condition', x: 500, y: 300, inputs: 1, outputs: 2, config: {
+          { id: 3, type: 'condition', x: 660, y: 300, inputs: 1, outputs: 2, config: {
             conditionType: 'field',
             field: 'completed',
             operator: 'equals',
             value: 'true'
           }},
-          { id: 4, type: 'action', x: 700, y: 200, inputs: 1, outputs: 1, config: {} },
-          { id: 5, type: 'action', x: 700, y: 400, inputs: 1, outputs: 1, config: {} },
-          { id: 6, type: 'end', x: 900, y: 300, inputs: 1, outputs: 0 }
+          { id: 4, type: 'action', x: 940, y: 180, inputs: 1, outputs: 1, config: {} },
+          { id: 5, type: 'action', x: 940, y: 420, inputs: 1, outputs: 1, config: {} },
+          { id: 6, type: 'end', x: 1220, y: 300, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7333,18 +7333,18 @@ export class WorkflowBuilder {
         name: 'Loop Through Data',
         description: 'Iterate over array items',
         nodes: [
-          { id: 1, type: 'trigger', x: 100, y: 250, inputs: 0, outputs: 1, config: {
+          { id: 1, type: 'trigger', x: 100, y: 280, inputs: 0, outputs: 1, config: {
             initialData: '{"items": [1, 2, 3, 4, 5]}'
           }},
-          { id: 2, type: 'loop', x: 300, y: 250, inputs: 1, outputs: 2, config: {
+          { id: 2, type: 'loop', x: 400, y: 280, inputs: 1, outputs: 2, config: {
             loopType: 'array',
             arrayPath: 'items'
           }},
-          { id: 3, type: 'transform', x: 500, y: 200, inputs: 1, outputs: 1, config: {
+          { id: 3, type: 'transform', x: 700, y: 180, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
             code: 'return { value: data * 2 };'
           }},
-          { id: 4, type: 'end', x: 500, y: 350, inputs: 1, outputs: 0 }
+          { id: 4, type: 'end', x: 700, y: 400, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7358,21 +7358,21 @@ export class WorkflowBuilder {
         name: 'Notification Flow',
         description: 'Send email/Slack based on API data',
         nodes: [
-          { id: 1, type: 'trigger', x: 100, y: 250, inputs: 0, outputs: 1 },
-          { id: 2, type: 'http', x: 300, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 1, type: 'trigger', x: 100, y: 280, inputs: 0, outputs: 1 },
+          { id: 2, type: 'http', x: 400, y: 280, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/posts/1'
           }},
-          { id: 3, type: 'email', x: 500, y: 150, inputs: 1, outputs: 1, config: {
+          { id: 3, type: 'email', x: 700, y: 150, inputs: 1, outputs: 1, config: {
             to: 'user@example.com',
             subject: 'New Post: {{lastResult.data.title}}',
             body: '{{lastResult.data.body}}'
           }},
-          { id: 4, type: 'slack', x: 500, y: 350, inputs: 1, outputs: 1, config: {
+          { id: 4, type: 'slack', x: 700, y: 410, inputs: 1, outputs: 1, config: {
             channel: '#notifications',
             message: 'New post created: {{lastResult.data.title}}'
           }},
-          { id: 5, type: 'end', x: 700, y: 250, inputs: 1, outputs: 0 }
+          { id: 5, type: 'end', x: 1000, y: 280, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7387,15 +7387,15 @@ export class WorkflowBuilder {
         name: 'Error Handling',
         description: 'Handle API errors gracefully',
         nodes: [
-          { id: 1, type: 'trigger', x: 100, y: 250, inputs: 0, outputs: 1 },
-          { id: 2, type: 'http', x: 300, y: 250, inputs: 1, outputs: 2, config: {
+          { id: 1, type: 'trigger', x: 100, y: 280, inputs: 0, outputs: 1 },
+          { id: 2, type: 'http', x: 400, y: 280, inputs: 1, outputs: 2, config: {
             method: 'GET',
             url: 'https://httpstat.us/500',
             ignore_errors: false
           }},
-          { id: 3, type: 'action', x: 550, y: 150, inputs: 1, outputs: 1, config: {} },
-          { id: 4, type: 'action', x: 550, y: 350, inputs: 1, outputs: 1, config: {} },
-          { id: 5, type: 'end', x: 750, y: 250, inputs: 1, outputs: 0 }
+          { id: 3, type: 'action', x: 700, y: 150, inputs: 1, outputs: 1, config: {} },
+          { id: 4, type: 'action', x: 700, y: 410, inputs: 1, outputs: 1, config: {} },
+          { id: 5, type: 'end', x: 1000, y: 280, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7411,36 +7411,36 @@ export class WorkflowBuilder {
         name: 'Full API Workflow',
         description: 'Complete API integration with auth, retry, and data processing',
         nodes: [
-          { id: 1, type: 'trigger', x: 50, y: 300, inputs: 0, outputs: 1, config: {
+          { id: 1, type: 'trigger', x: 100, y: 300, inputs: 0, outputs: 1, config: {
             triggerType: 'manual',
             initialData: '{"userId": 1}'
           }},
-          { id: 2, type: 'http', x: 220, y: 300, inputs: 1, outputs: 1, config: {
+          { id: 2, type: 'http', x: 380, y: 300, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/users/{{data.userId}}',
             headers: '{"Authorization": "Bearer token123", "Accept": "application/json"}'
           }},
-          { id: 3, type: 'condition', x: 400, y: 300, inputs: 1, outputs: 2, config: {
+          { id: 3, type: 'condition', x: 660, y: 300, inputs: 1, outputs: 2, config: {
             conditionType: 'field',
             field: 'company.name',
             operator: 'not_empty'
           }},
-          { id: 4, type: 'http', x: 580, y: 200, inputs: 1, outputs: 1, config: {
+          { id: 4, type: 'http', x: 940, y: 180, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/posts?userId={{node_2.data.id}}'
           }},
-          { id: 5, type: 'transform', x: 760, y: 200, inputs: 1, outputs: 1, config: {
+          { id: 5, type: 'transform', x: 1220, y: 180, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
             code: 'return { user: context.node_2.data, posts: data, postCount: data.length };'
           }},
-          { id: 6, type: 'filter', x: 940, y: 200, inputs: 1, outputs: 1, config: {
+          { id: 6, type: 'filter', x: 1500, y: 180, inputs: 1, outputs: 1, config: {
             filterType: 'javascript',
             code: 'return data.posts.filter(p => p.title.length > 20);'
           }},
-          { id: 7, type: 'action', x: 580, y: 400, inputs: 1, outputs: 1, config: {
+          { id: 7, type: 'action', x: 940, y: 420, inputs: 1, outputs: 1, config: {
             actionName: 'Log Invalid User'
           }},
-          { id: 8, type: 'end', x: 1100, y: 300, inputs: 1, outputs: 0 }
+          { id: 8, type: 'end', x: 1780, y: 300, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7458,30 +7458,30 @@ export class WorkflowBuilder {
         name: 'Data Enrichment Pipeline',
         description: 'Fetch data from multiple sources and merge',
         nodes: [
-          { id: 1, type: 'trigger', x: 50, y: 250, inputs: 0, outputs: 1, config: {
+          { id: 1, type: 'trigger', x: 100, y: 280, inputs: 0, outputs: 1, config: {
             triggerType: 'manual'
           }},
-          { id: 2, type: 'http', x: 220, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 2, type: 'http', x: 380, y: 280, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/users'
           }},
-          { id: 3, type: 'loop', x: 400, y: 250, inputs: 1, outputs: 2, config: {
+          { id: 3, type: 'loop', x: 660, y: 280, inputs: 1, outputs: 2, config: {
             loopType: 'array',
             arrayPath: 'data'
           }},
-          { id: 4, type: 'http', x: 580, y: 180, inputs: 1, outputs: 1, config: {
+          { id: 4, type: 'http', x: 940, y: 160, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/posts?userId={{item.id}}'
           }},
-          { id: 5, type: 'http', x: 580, y: 320, inputs: 1, outputs: 1, config: {
+          { id: 5, type: 'http', x: 940, y: 400, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/todos?userId={{item.id}}'
           }},
-          { id: 6, type: 'transform', x: 760, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 6, type: 'transform', x: 1220, y: 280, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
             code: 'return { user: context.item, posts: context.node_4.data, todos: data };'
           }},
-          { id: 7, type: 'end', x: 940, y: 250, inputs: 1, outputs: 0 }
+          { id: 7, type: 'end', x: 1500, y: 280, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7498,39 +7498,39 @@ export class WorkflowBuilder {
         name: 'Multi-Channel Alert System',
         description: 'Monitor API and send alerts via multiple channels',
         nodes: [
-          { id: 1, type: 'trigger', x: 50, y: 300, inputs: 0, outputs: 1, config: {
+          { id: 1, type: 'trigger', x: 100, y: 320, inputs: 0, outputs: 1, config: {
             triggerType: 'schedule',
             cronExpression: '*/5 * * * *'
           }},
-          { id: 2, type: 'http', x: 220, y: 300, inputs: 1, outputs: 2, config: {
+          { id: 2, type: 'http', x: 380, y: 320, inputs: 1, outputs: 2, config: {
             method: 'GET',
             url: 'https://api.example.com/health',
             timeout: 5000
           }},
-          { id: 3, type: 'condition', x: 400, y: 300, inputs: 1, outputs: 2, config: {
+          { id: 3, type: 'condition', x: 660, y: 320, inputs: 1, outputs: 2, config: {
             conditionType: 'field',
             field: 'status',
             operator: 'equals',
             value: 'healthy'
           }},
-          { id: 4, type: 'action', x: 580, y: 150, inputs: 1, outputs: 1, config: {
+          { id: 4, type: 'action', x: 940, y: 140, inputs: 1, outputs: 1, config: {
             actionName: 'Log Success'
           }},
-          { id: 5, type: 'email', x: 580, y: 300, inputs: 1, outputs: 1, config: {
+          { id: 5, type: 'email', x: 940, y: 320, inputs: 1, outputs: 1, config: {
             to: 'ops-team@example.com',
-            subject: '🚨 API Alert: Service Unhealthy',
+            subject: 'API Alert: Service Unhealthy',
             body: 'The health check failed at {{timestamp}}. Status: {{lastResult.data.status}}'
           }},
-          { id: 6, type: 'slack', x: 580, y: 450, inputs: 1, outputs: 1, config: {
+          { id: 6, type: 'slack', x: 940, y: 500, inputs: 1, outputs: 1, config: {
             channel: '#alerts',
-            message: '🚨 *API DOWN* - Health check failed!\nStatus: {{lastResult.data.status}}\nTime: {{timestamp}}'
+            message: 'API DOWN - Health check failed! Status: {{lastResult.data.status}} Time: {{timestamp}}'
           }},
-          { id: 7, type: 'http', x: 760, y: 375, inputs: 1, outputs: 1, config: {
+          { id: 7, type: 'http', x: 1220, y: 410, inputs: 1, outputs: 1, config: {
             method: 'POST',
             url: 'https://api.pagerduty.com/incidents',
             body: '{"title": "Service Down", "severity": "critical"}'
           }},
-          { id: 8, type: 'end', x: 940, y: 300, inputs: 1, outputs: 0 }
+          { id: 8, type: 'end', x: 1500, y: 320, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },
@@ -7549,52 +7549,52 @@ export class WorkflowBuilder {
         name: 'ETL Pipeline',
         description: 'Extract, Transform, Load data pipeline',
         nodes: [
-          { id: 1, type: 'trigger', x: 50, y: 250, inputs: 0, outputs: 1, config: {
+          { id: 1, type: 'trigger', x: 100, y: 280, inputs: 0, outputs: 1, config: {
             triggerType: 'schedule',
             cronExpression: '0 2 * * *'
           }},
-          { id: 2, type: 'http', x: 200, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 2, type: 'http', x: 340, y: 280, inputs: 1, outputs: 1, config: {
             method: 'GET',
             url: 'https://jsonplaceholder.typicode.com/posts'
           }},
-          { id: 3, type: 'filter', x: 350, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 3, type: 'filter', x: 580, y: 280, inputs: 1, outputs: 1, config: {
             filterType: 'javascript',
             code: 'return data.filter(item => item.userId <= 5);'
           }},
-          { id: 4, type: 'transform', x: 500, y: 250, inputs: 1, outputs: 1, config: {
+          { id: 4, type: 'transform', x: 820, y: 280, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
             code: 'return data.map(p => ({ id: p.id, title: p.title.toUpperCase(), author: p.userId, wordCount: p.body.split(" ").length }));'
           }},
-          { id: 5, type: 'loop', x: 650, y: 250, inputs: 1, outputs: 2, config: {
+          { id: 5, type: 'loop', x: 1060, y: 280, inputs: 1, outputs: 2, config: {
             loopType: 'array',
             arrayPath: 'data'
           }},
-          { id: 6, type: 'condition', x: 800, y: 180, inputs: 1, outputs: 2, config: {
+          { id: 6, type: 'condition', x: 1300, y: 180, inputs: 1, outputs: 2, config: {
             conditionType: 'field',
             field: 'wordCount',
             operator: 'greater_than',
             value: '10'
           }},
-          { id: 7, type: 'database', x: 950, y: 120, inputs: 1, outputs: 1, config: {
+          { id: 7, type: 'database', x: 1540, y: 100, inputs: 1, outputs: 1, config: {
             operation: 'insert',
             table: 'long_posts',
             data: '{{item}}'
           }},
-          { id: 8, type: 'database', x: 950, y: 240, inputs: 1, outputs: 1, config: {
+          { id: 8, type: 'database', x: 1540, y: 260, inputs: 1, outputs: 1, config: {
             operation: 'insert',
             table: 'short_posts',
             data: '{{item}}'
           }},
-          { id: 9, type: 'transform', x: 1100, y: 350, inputs: 1, outputs: 1, config: {
+          { id: 9, type: 'transform', x: 1300, y: 420, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
             code: 'return { processed: context.loopIndex, timestamp: new Date().toISOString() };'
           }},
-          { id: 10, type: 'email', x: 1250, y: 350, inputs: 1, outputs: 1, config: {
+          { id: 10, type: 'email', x: 1540, y: 420, inputs: 1, outputs: 1, config: {
             to: 'data-team@example.com',
             subject: 'ETL Pipeline Complete',
             body: 'Processed {{lastResult.data.processed}} records at {{lastResult.data.timestamp}}'
           }},
-          { id: 11, type: 'end', x: 1400, y: 250, inputs: 1, outputs: 0 }
+          { id: 11, type: 'end', x: 1780, y: 280, inputs: 1, outputs: 0 }
         ],
         connections: [
           { from: 1, to: 2 },

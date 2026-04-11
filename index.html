@@ -109,12 +109,12 @@
       
       workflow.setNodeConfig(successId, {
         actionType: 'log',
-        log_message: '✅ Condition passed! Count is greater than 3'
+        log_message: 'Condition passed! Count is greater than 3'
       });
       
       workflow.setNodeConfig(failId, {
         actionType: 'log',
-        log_message: '❌ Condition failed! Count is 3 or less'
+        log_message: 'Condition failed! Count is 3 or less'
       });
       
       // Create additional example nodes (not connected) to show different configs
@@ -148,7 +148,7 @@
       console.log('║  ⏸ Pause   - Pause execution                                 ║');
       console.log('║  ⏹ Stop    - Stop execution                                  ║');
       console.log('║  ↺ Reset   - Clear execution state                           ║');
-      console.log('║  📋 Log    - Toggle execution log                            ║');
+      console.log('|  Log    - Toggle execution log                            |');
       console.log('╠══════════════════════════════════════════════════════════════╣');
       console.log('║  CONFIGURE NODES:                                            ║');
       console.log('║  • Double-click any node to configure                        ║');
