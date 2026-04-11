@@ -1809,7 +1809,53 @@ export class WorkflowBuilder {
    * --------------------------------------------------------------------------
    */
   export() {
-    return this.drawflow.export();
+    const data = this.drawflow.export();
+    
+    // Debug: Log node colors in export data
+    const nodes = data.drawflow?.Home?.data || {};
+    Object.entries(nodes).forEach(([nodeId, nodeData]) => {
+      if (nodeData.data?._nodeColor) {
+        console.log('[VizFlow Export] Node', nodeId, 'has color:', nodeData.data._nodeColor);
+      }
+    });
+    
+    // Save connection colors
+    const connectionColors = {};
+    const connections = this.container.querySelectorAll('.connection .main-path[data-custom-color]');
+    connections.forEach(path => {
+      const connection = path.closest('.connection');
+      if (connection) {
+        const classString = connection.getAttribute('class') || '';
+        const classes = classString.split(' ');
+        
+        let inputNodeId, outputNodeId, inputClass, outputClass;
+        classes.forEach(cls => {
+          if (cls.startsWith('node_in_node-')) {
+            inputNodeId = cls.replace('node_in_node-', '');
+          }
+          if (cls.startsWith('node_out_node-')) {
+            outputNodeId = cls.replace('node_out_node-', '');
+          }
+          if (cls.startsWith('output_')) {
+            outputClass = cls;
+          }
+          if (cls.startsWith('input_')) {
+            inputClass = cls;
+          }
+        });
+        
+        if (outputNodeId && inputNodeId && outputClass && inputClass) {
+          const key = `${outputNodeId}|${inputNodeId}|${outputClass}|${inputClass}`;
+          connectionColors[key] = path.dataset.customColor;
+        }
+      }
+    });
+    
+    if (Object.keys(connectionColors).length > 0) {
+      data._connectionColors = connectionColors;
+    }
+    
+    return data;
   }
 
 
@@ -1825,10 +1871,134 @@ export class WorkflowBuilder {
    * --------------------------------------------------------------------------
    */
   import(data) {
+    console.log('[VizFlow Import] Importing workflow data');
+    console.log('[VizFlow Import] Has _connectionColors:', !!data._connectionColors);
+    
+    // Log node colors in the data being imported
+    const nodes = data.drawflow?.Home?.data || {};
+    Object.entries(nodes).forEach(([nodeId, nodeData]) => {
+      if (nodeData.data?._nodeColor) {
+        console.log('[VizFlow Import] Node', nodeId, 'has color:', nodeData.data._nodeColor);
+      }
+    });
+    
     this.drawflow.import(data);
     this._updateStats();
     this._saveToHistory();
+    
+    // Restore visual styles after import
+    this._restoreImportedStyles(data);
+    
     this._setStatus('Workflow imported');
+  }
+
+  /**
+   * Restore visual styles after importing workflow data
+   */
+  _restoreImportedStyles(data) {
+    if (!data?.drawflow?.Home?.data) {
+      console.log('[VizFlow] No data to restore styles from');
+      return;
+    }
+    
+    const nodes = data.drawflow.Home.data;
+    const connectionColors = data._connectionColors;
+    
+    console.log('[VizFlow] Restoring styles for', Object.keys(nodes).length, 'nodes');
+    if (connectionColors) {
+      console.log('[VizFlow] Restoring', Object.keys(connectionColors).length, 'connection colors');
+    }
+    
+    // Wait for DOM to fully update (increased timeout)
+    setTimeout(() => {
+      Object.entries(nodes).forEach(([nodeId, nodeData]) => {
+        const nodeEl = this.container.querySelector(`#node-${nodeId}`);
+        
+        // Restore node colors
+        if (nodeData.data?._nodeColor) {
+          console.log('[VizFlow] Restoring color for node', nodeId, ':', nodeData.data._nodeColor);
+          if (nodeEl) {
+            nodeEl.style.setProperty('--node-color', nodeData.data._nodeColor);
+            nodeEl.classList.add('custom-color');
+          } else {
+            console.warn('[VizFlow] Node element not found:', nodeId);
+          }
+        }
+        
+        // Restore comment functionality
+        if (nodeData.data?._isComment) {
+          this._setupRestoredComment(nodeId, nodeData.data._text);
+        }
+      });
+      
+      // Restore connection colors
+      if (connectionColors) {
+        this._restoreConnectionColors(connectionColors);
+      }
+    }, 100);
+  }
+
+  /**
+   * Setup restored comment node functionality
+   */
+  _setupRestoredComment(nodeId, text) {
+    const node = this.container.querySelector(`#node-${nodeId}`);
+    if (!node) return;
+    
+    const textarea = node.querySelector('.comment-text');
+    const deleteBtn = node.querySelector('.comment-delete');
+    
+    if (textarea) {
+      // Restore text content
+      if (text) textarea.value = text;
+      
+      textarea.addEventListener('input', (e) => {
+        // Update internal data directly (getNodeFromId returns a copy)
+        try {
+          const internalData = this.drawflow.drawflow.drawflow.Home.data[nodeId];
+          if (internalData) {
+            internalData.data._text = e.target.value;
+          }
+        } catch (err) {
+          console.warn('[VizFlow] Could not save comment text:', err);
+        }
+        this._triggerChange();
+      });
+      
+      textarea.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
+    }
+    
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.drawflow.removeNodeId(`node-${nodeId}`);
+      });
+    }
+    
+    this._setupCommentResize(nodeId);
+  }
+
+  /**
+   * Restore connection colors from saved data
+   */
+  _restoreConnectionColors(colorData) {
+    Object.entries(colorData).forEach(([connectionKey, color]) => {
+      const [outputNode, inputNode, outputClass, inputClass] = connectionKey.split('|');
+      
+      // Find the connection SVG element
+      const selector = `.connection.node_out_node-${outputNode}.node_in_node-${inputNode}.${outputClass}.${inputClass}`;
+      const connection = this.container.querySelector(selector);
+      
+      if (connection) {
+        const path = connection.querySelector('.main-path');
+        if (path) {
+          path.style.stroke = color;
+          path.dataset.customColor = color;
+        }
+      }
+    });
   }
 
 
@@ -4143,16 +4313,27 @@ export class WorkflowBuilder {
    */
   setNodeColor(nodeId, color) {
     const nodeElement = this.container.querySelector(`#node-${nodeId}`);
-    if (!nodeElement) return;
+    if (!nodeElement) {
+      console.warn('[VizFlow] setNodeColor: Node element not found:', nodeId);
+      return;
+    }
     
-    // Apply color to the node
+    // Apply color to the node visually
     nodeElement.style.setProperty('--node-color', color);
     nodeElement.classList.add('custom-color');
     
-    // Store color in node data for export/import
-    const nodeData = this.drawflow.getNodeFromId(nodeId);
-    if (nodeData) {
-      nodeData.data._nodeColor = color;
+    // Store color in Drawflow's internal data structure directly
+    // Note: getNodeFromId returns a copy, so we must modify the source
+    try {
+      const internalData = this.drawflow.drawflow.drawflow.Home.data[nodeId];
+      if (internalData) {
+        internalData.data._nodeColor = color;
+        console.log('[VizFlow] setNodeColor: Stored color', color, 'for node', nodeId);
+      } else {
+        console.warn('[VizFlow] setNodeColor: Internal data not found for node:', nodeId);
+      }
+    } catch (e) {
+      console.error('[VizFlow] setNodeColor: Error storing color:', e);
     }
     
     this._saveToHistory();
@@ -4206,14 +4387,11 @@ export class WorkflowBuilder {
    * --------------------------------------------------------------------------
    */
   addComment(x, y, text = '') {
-    // Create comment node HTML
+    // Create comment node HTML - simple sticky note
     const commentHtml = `
       <div class="workflow-node comment-node">
-        <div class="comment-header">
-          <span class="comment-icon">📝</span>
-          <span class="comment-title">Note</span>
-        </div>
-        <textarea class="comment-text" placeholder="Add your note here...">${text}</textarea>
+        <button class="comment-delete" title="Delete note">×</button>
+        <textarea class="comment-text" placeholder="Type a note...">${text}</textarea>
         <div class="comment-resize-handle"></div>
       </div>
     `;
@@ -4230,14 +4408,22 @@ export class WorkflowBuilder {
       commentHtml
     );
     
-    // Setup textarea change event
+    // Setup textarea and delete button events
     setTimeout(() => {
-      const textarea = this.container.querySelector(`#node-${nodeId} .comment-text`);
+      const node = this.container.querySelector(`#node-${nodeId}`);
+      const textarea = node?.querySelector('.comment-text');
+      const deleteBtn = node?.querySelector('.comment-delete');
+      
       if (textarea) {
         textarea.addEventListener('input', (e) => {
-          const nodeData = this.drawflow.getNodeFromId(nodeId);
-          if (nodeData) {
-            nodeData.data._text = e.target.value;
+          // Update internal data directly (getNodeFromId returns a copy)
+          try {
+            const internalData = this.drawflow.drawflow.drawflow.Home.data[nodeId];
+            if (internalData) {
+              internalData.data._text = e.target.value;
+            }
+          } catch (err) {
+            console.warn('[VizFlow] Could not save comment text:', err);
           }
           this._triggerChange();
         });
@@ -4245,6 +4431,17 @@ export class WorkflowBuilder {
         // Prevent drag when typing
         textarea.addEventListener('mousedown', (e) => {
           e.stopPropagation();
+        });
+        
+        // Auto-focus when created
+        textarea.focus();
+      }
+      
+      // Delete button handler
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.drawflow.removeNodeId(`node-${nodeId}`);
         });
       }
       
