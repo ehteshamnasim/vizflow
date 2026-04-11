@@ -2582,6 +2582,23 @@ export class WorkflowBuilder {
    * Setup right-click context menu
    */
   _setupContextMenu() {
+    // Preset colors for nodes and connections
+    this.presetColors = [
+      { name: 'Blue', value: '#2563EB' },
+      { name: 'Green', value: '#10B981' },
+      { name: 'Red', value: '#EF4444' },
+      { name: 'Purple', value: '#8B5CF6' },
+      { name: 'Orange', value: '#F97316' },
+      { name: 'Yellow', value: '#EAB308' },
+      { name: 'Pink', value: '#EC4899' },
+      { name: 'Cyan', value: '#06B6D4' },
+      { name: 'Gray', value: '#6B7280' },
+    ];
+    
+    const colorSwatches = this.presetColors.map(c => 
+      `<div class="color-swatch" data-color="${c.value}" title="${c.name}" style="background-color: ${c.value}"></div>`
+    ).join('');
+    
     // Create context menu element
     const menu = document.createElement('div');
     menu.className = 'workflow-context-menu';
@@ -2590,18 +2607,47 @@ export class WorkflowBuilder {
       <div class="context-menu-item" data-action="paste">Paste</div>
       <div class="context-menu-item" data-action="duplicate">Duplicate</div>
       <div class="context-menu-divider"></div>
+      <div class="context-menu-item context-menu-submenu" data-submenu="node-color">
+        Change Color
+        <span class="submenu-arrow">▶</span>
+        <div class="context-submenu" id="node-color-submenu">
+          <div class="color-picker-grid">${colorSwatches}</div>
+          <div class="color-picker-custom">
+            <input type="color" id="custom-node-color" value="#2563EB">
+            <span>Custom</span>
+          </div>
+        </div>
+      </div>
+      <div class="context-menu-item" data-action="add-comment">Add Comment</div>
+      <div class="context-menu-divider"></div>
       <div class="context-menu-item" data-action="disconnect">Disconnect All</div>
       <div class="context-menu-item context-menu-danger" data-action="delete">Delete</div>
       <div class="context-menu-item context-menu-danger" data-action="delete-connection" style="display:none;">Delete Connection</div>
+      <div class="context-menu-item context-menu-submenu" data-submenu="conn-color" style="display:none;">
+        Connection Color
+        <span class="submenu-arrow">▶</span>
+        <div class="context-submenu" id="conn-color-submenu">
+          <div class="color-picker-grid">${colorSwatches}</div>
+        </div>
+      </div>
     `;
     this.container.appendChild(menu);
     this.contextMenu = menu;
     this.selectedConnection = null;
+    this.contextMenuNodeId = null;  // Track which node the context menu is for
+    this.contextMenuPosition = { x: 0, y: 0 };  // Track where menu was opened
 
     // Handle right-click on canvas
     const canvas = this.container.querySelector('#drawflow-canvas');
     canvas.addEventListener('contextmenu', (event) => {
       event.preventDefault();
+      
+      // Store position for adding comments
+      const canvasRect = canvas.getBoundingClientRect();
+      this.contextMenuPosition = {
+        x: (event.clientX - canvasRect.left) / this.drawflow.zoom - this.drawflow.canvas_x / this.drawflow.zoom,
+        y: (event.clientY - canvasRect.top) / this.drawflow.zoom - this.drawflow.canvas_y / this.drawflow.zoom
+      };
       
       // Check if right-clicking on a connection
       const connection = event.target.closest('.connection');
@@ -2609,6 +2655,7 @@ export class WorkflowBuilder {
         // Store the connection info for deletion
         const connectionClass = connection.classList[1]; // e.g., "node_in_node-2"
         this.selectedConnection = connection;
+        this.contextMenuNodeId = null;
         this._showContextMenu(event.clientX, event.clientY, false, true);
         return;
       }
@@ -2616,9 +2663,12 @@ export class WorkflowBuilder {
       // Check if right-clicking on a node
       const node = event.target.closest('.drawflow-node');
       if (node) {
-        // Select the node
+        // Select the node and store its ID
         node.classList.add('selected');
-        this._showProperties(node.id.replace('node-', ''));
+        this.contextMenuNodeId = node.id.replace('node-', '');
+        this._showProperties(this.contextMenuNodeId);
+      } else {
+        this.contextMenuNodeId = null;
       }
       
       this._showContextMenu(event.clientX, event.clientY, !!node, false);
@@ -2631,11 +2681,53 @@ export class WorkflowBuilder {
         this._deleteConnection(connection);
       }
     });
+    
+    // Handle color swatch clicks for nodes
+    menu.querySelectorAll('#node-color-submenu .color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const color = swatch.dataset.color;
+        if (this.contextMenuNodeId) {
+          this.setNodeColor(this.contextMenuNodeId, color);
+        }
+        this._hideContextMenu();
+      });
+    });
+    
+    // Handle custom color input for nodes
+    const customColorInput = menu.querySelector('#custom-node-color');
+    if (customColorInput) {
+      customColorInput.addEventListener('change', (event) => {
+        event.stopPropagation();
+        if (this.contextMenuNodeId) {
+          this.setNodeColor(this.contextMenuNodeId, event.target.value);
+        }
+        this._hideContextMenu();
+      });
+    }
+    
+    // Handle color swatch clicks for connections
+    menu.querySelectorAll('#conn-color-submenu .color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const color = swatch.dataset.color;
+        if (this.selectedConnection) {
+          this.setConnectionColor(this.selectedConnection, color);
+        }
+        this._hideContextMenu();
+      });
+    });
 
     // Handle context menu item clicks
     menu.addEventListener('click', (event) => {
       const item = event.target.closest('.context-menu-item');
       if (!item) return;
+      
+      // Don't close menu if clicking on submenu parent
+      if (item.classList.contains('context-menu-submenu')) {
+        event.stopPropagation();
+        return;
+      }
       
       const action = item.dataset.action;
       
@@ -2648,6 +2740,9 @@ export class WorkflowBuilder {
           break;
         case 'duplicate':
           this.duplicateSelected();
+          break;
+        case 'add-comment':
+          this.addComment(this.contextMenuPosition.x, this.contextMenuPosition.y);
           break;
         case 'disconnect':
           this.disconnectSelected();
@@ -2718,10 +2813,31 @@ export class WorkflowBuilder {
       deleteConnItem.style.display = isConnection ? 'block' : 'none';
     }
     
+    // Show/hide connection color submenu
+    const connColorSubmenu = this.contextMenu.querySelector('[data-submenu="conn-color"]');
+    if (connColorSubmenu) {
+      connColorSubmenu.style.display = isConnection ? 'block' : 'none';
+    }
+    
+    // Show/hide node color submenu
+    const nodeColorSubmenu = this.contextMenu.querySelector('[data-submenu="node-color"]');
+    if (nodeColorSubmenu) {
+      nodeColorSubmenu.style.display = hasNode ? 'block' : 'none';
+      nodeColorSubmenu.classList.toggle('disabled', !hasNode);
+    }
+    
+    // Show add-comment always (on canvas or node)
+    const addCommentItem = this.contextMenu.querySelector('[data-action="add-comment"]');
+    if (addCommentItem) {
+      addCommentItem.style.display = isConnection ? 'none' : 'block';
+    }
+    
     // Enable/disable items based on selection
     const items = this.contextMenu.querySelectorAll('.context-menu-item');
     items.forEach(item => {
       const action = item.dataset.action;
+      const submenu = item.dataset.submenu;
+      
       if (['copy', 'duplicate', 'disconnect', 'delete'].includes(action)) {
         item.classList.toggle('disabled', !hasNode);
         item.style.display = isConnection ? 'none' : 'block';
@@ -2732,11 +2848,11 @@ export class WorkflowBuilder {
       }
     });
     
-    // Hide divider for connection menu
-    const divider = this.contextMenu.querySelector('.context-menu-divider');
-    if (divider) {
-      divider.style.display = isConnection ? 'none' : 'block';
-    }
+    // Hide dividers for connection menu
+    const dividers = this.contextMenu.querySelectorAll('.context-menu-divider');
+    dividers.forEach(d => {
+      d.style.display = isConnection ? 'none' : 'block';
+    });
   }
 
   /**
@@ -4009,6 +4125,178 @@ export class WorkflowBuilder {
           e.preventDefault();
           this.deleteSelected();
         }
+      }
+    });
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: SET NODE COLOR
+   * --------------------------------------------------------------------------
+   * 
+   * Changes the color of a specific node.
+   * 
+   * @param {string|number} nodeId - ID of the node to color
+   * @param {string} color - Hex color value
+   * 
+   * --------------------------------------------------------------------------
+   */
+  setNodeColor(nodeId, color) {
+    const nodeElement = this.container.querySelector(`#node-${nodeId}`);
+    if (!nodeElement) return;
+    
+    // Apply color to the node
+    nodeElement.style.setProperty('--node-color', color);
+    nodeElement.classList.add('custom-color');
+    
+    // Store color in node data for export/import
+    const nodeData = this.drawflow.getNodeFromId(nodeId);
+    if (nodeData) {
+      nodeData.data._nodeColor = color;
+    }
+    
+    this._saveToHistory();
+    this._triggerChange();
+    this._setStatus(`Node color changed`);
+    
+    return this;
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: SET CONNECTION COLOR
+   * --------------------------------------------------------------------------
+   * 
+   * Changes the color of a specific connection line.
+   * 
+   * @param {SVGElement} connectionEl - SVG connection element
+   * @param {string} color - Hex color value
+   * 
+   * --------------------------------------------------------------------------
+   */
+  setConnectionColor(connectionEl, color) {
+    if (!connectionEl) return;
+    
+    // Apply color to the connection path
+    const path = connectionEl.querySelector('.main-path');
+    if (path) {
+      path.style.stroke = color;
+      path.dataset.customColor = color;
+    }
+    
+    this._saveToHistory();
+    this._triggerChange();
+    this._setStatus(`Connection color changed`);
+    
+    return this;
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * PUBLIC: ADD COMMENT
+   * --------------------------------------------------------------------------
+   * 
+   * Adds a sticky note / comment node at the specified position.
+   * 
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {string} text - Initial comment text
+   * @returns {number} Node ID
+   * 
+   * --------------------------------------------------------------------------
+   */
+  addComment(x, y, text = '') {
+    // Create comment node HTML
+    const commentHtml = `
+      <div class="workflow-node comment-node">
+        <div class="comment-header">
+          <span class="comment-icon">📝</span>
+          <span class="comment-title">Note</span>
+        </div>
+        <textarea class="comment-text" placeholder="Add your note here...">${text}</textarea>
+        <div class="comment-resize-handle"></div>
+      </div>
+    `;
+    
+    // Add node to drawflow
+    const nodeId = this.drawflow.addNode(
+      'comment',
+      0, // inputs
+      0, // outputs
+      x,
+      y,
+      'comment-node-wrapper',
+      { _text: text, _isComment: true },
+      commentHtml
+    );
+    
+    // Setup textarea change event
+    setTimeout(() => {
+      const textarea = this.container.querySelector(`#node-${nodeId} .comment-text`);
+      if (textarea) {
+        textarea.addEventListener('input', (e) => {
+          const nodeData = this.drawflow.getNodeFromId(nodeId);
+          if (nodeData) {
+            nodeData.data._text = e.target.value;
+          }
+          this._triggerChange();
+        });
+        
+        // Prevent drag when typing
+        textarea.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+        });
+      }
+      
+      // Setup resize handle
+      this._setupCommentResize(nodeId);
+    }, 0);
+    
+    this._setStatus('Comment added');
+    return nodeId;
+  }
+
+  /**
+   * Setup resize functionality for comment nodes
+   */
+  _setupCommentResize(nodeId) {
+    const node = this.container.querySelector(`#node-${nodeId}`);
+    if (!node) return;
+    
+    const handle = node.querySelector('.comment-resize-handle');
+    const commentNode = node.querySelector('.comment-node');
+    if (!handle || !commentNode) return;
+    
+    let isResizing = false;
+    let startWidth, startHeight, startX, startY;
+    
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      isResizing = true;
+      startWidth = commentNode.offsetWidth;
+      startHeight = commentNode.offsetHeight;
+      startX = e.clientX;
+      startY = e.clientY;
+      
+      document.body.style.cursor = 'nwse-resize';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      
+      const newWidth = Math.max(150, startWidth + (e.clientX - startX) / this.drawflow.zoom);
+      const newHeight = Math.max(100, startHeight + (e.clientY - startY) / this.drawflow.zoom);
+      
+      commentNode.style.width = `${newWidth}px`;
+      commentNode.style.height = `${newHeight}px`;
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = '';
       }
     });
   }
