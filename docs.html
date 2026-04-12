@@ -158,6 +158,7 @@
       font-weight: 700;
       color: #1a1a1a;
       margin: 40px 0 16px;
+      scroll-margin-top: 80px;
     }
     
     h4 {
@@ -505,7 +506,21 @@
         <a href="#custom" class="nav-link">Custom Nodes</a>
         <a href="#styling" class="nav-link">Connection Styling</a>
         <a href="#events" class="nav-link">Events</a>
-        <a href="#examples" class="nav-link">Examples</a>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-title">Examples</div>
+        <a href="#ex-api" class="nav-link">API Request</a>
+        <a href="#ex-pipeline" class="nav-link">Data Pipeline</a>
+        <a href="#ex-condition" class="nav-link">Condition Flow</a>
+        <a href="#ex-loop" class="nav-link">Loop Example</a>
+        <a href="#ex-notify" class="nav-link">Notification</a>
+        <a href="#ex-error" class="nav-link">Error Handling</a>
+        <a href="#ex-fullapi" class="nav-link">Full API Workflow</a>
+        <a href="#ex-enrich" class="nav-link">Data Enrichment</a>
+        <a href="#ex-alert" class="nav-link">Multi-Channel Alert</a>
+        <a href="#ex-etl" class="nav-link">ETL Pipeline</a>
+        <a href="#ex-vars" class="nav-link">Context Variables</a>
       </div>
     </nav>
     
@@ -1075,65 +1090,166 @@ builder.drawflow.on('nodeMoved', (id) => {
       
       <section id="examples" class="section">
         <h2>Examples</h2>
+        <p>Click <strong>Examples</strong> dropdown in VizFlow to load any of these pre-built workflows.</p>
         
-        <h3>Simple Trigger-Action Flow</h3>
-        <pre><code>const builder = new WorkflowBuilder('#app');
-
-// Add nodes
-const triggerId = builder.addNode('trigger', 100, 150);
-const actionId = builder.addNode('http', 350, 150);
-const endId = builder.addNode('end', 600, 150);
-
-// Connect: trigger -> action -> end
-builder.connect(triggerId, actionId);
-builder.connect(actionId, endId);
-
-// Run workflow
-await builder.runWorkflow();</code></pre>
+        <!-- Example 1 -->
+        <h3 id="ex-api">1. API Request Test</h3>
+        <p><strong>What it does:</strong> Makes one API call and transforms the response.</p>
+        <p><strong>Use case:</strong> Quick API endpoint testing, validating response format.</p>
+        <p><strong>Flow:</strong> Trigger → HTTP → Transform → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Trigger</td><td>Click "Run" to start</td></tr>
+          <tr><td>2</td><td>HTTP</td><td><code>url: https://jsonplaceholder.typicode.com/todos/1</code></td></tr>
+          <tr><td>3</td><td>Transform</td><td><code>return { title: data.title, completed: data.completed };</code></td></tr>
+        </table>
+        <pre><code>// Expected output:
+{ "title": "delectus aut autem", "completed": false }</code></pre>
         
-        <h3>Conditional Branching</h3>
-        <pre><code>const builder = new WorkflowBuilder('#app');
-
-// Create nodes
-const trigger = builder.addNode('trigger', 100, 200);
-const condition = builder.addNode('condition', 350, 200);
-const successAction = builder.addNode('email', 600, 100);  // True path
-const failAction = builder.addNode('slack', 600, 300);      // False path
-const end = builder.addNode('end', 850, 200);
-
-// Connect
-builder.connect(trigger, condition);
-builder.connect(condition, successAction);  // Green (output_1)
-builder.connect(condition, failAction);     // Red (output_2)
-builder.connect(successAction, end);
-builder.connect(failAction, end);
-
-// Configure condition
-builder.updateNodeData(condition, {
-  expression: '{{lastResult.data.value}} > 100'
-});</code></pre>
+        <!-- Example 2 -->
+        <h3 id="ex-pipeline">2. Data Pipeline</h3>
+        <p><strong>What it does:</strong> Fetches users, filters invalid entries, transforms to clean format.</p>
+        <p><strong>Use case:</strong> Clean contact lists from CRM API for mailing list.</p>
+        <p><strong>Flow:</strong> Trigger → HTTP → Filter → Transform → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Trigger</td><td>Manual start</td></tr>
+          <tr><td>2</td><td>HTTP</td><td><code>url: https://jsonplaceholder.typicode.com/users</code></td></tr>
+          <tr><td>3</td><td>Filter</td><td><code>return item.address && item.address.city;</code></td></tr>
+          <tr><td>4</td><td>Transform</td><td><code>return data.map(u => ({ name: u.name, email: u.email, city: u.address.city }));</code></td></tr>
+        </table>
         
-        <h3>Loop Over Items</h3>
-        <pre><code>const builder = new WorkflowBuilder('#app');
+        <!-- Example 3 -->
+        <h3 id="ex-condition">3. Condition Flow</h3>
+        <p><strong>What it does:</strong> Routes workflow differently based on API response data.</p>
+        <p><strong>Use case:</strong> Process tickets by status, route orders by type.</p>
+        <p><strong>Flow:</strong> Trigger → HTTP → Condition → (True: Action A | False: Action B) → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Trigger</td><td>Manual start</td></tr>
+          <tr><td>2</td><td>HTTP</td><td><code>url: https://jsonplaceholder.typicode.com/todos/1</code></td></tr>
+          <tr><td>3</td><td>Condition</td><td><code>conditionType: javascript</code><br><code>js_condition: return ctx.lastResult?.data?.completed === true;</code></td></tr>
+          <tr><td>4a</td><td>Action (True)</td><td>output_1 → Task completed handler</td></tr>
+          <tr><td>4b</td><td>Action (False)</td><td>output_2 → Task incomplete handler</td></tr>
+        </table>
+        
+        <!-- Example 4 -->
+        <h3 id="ex-loop">4. Loop Example</h3>
+        <p><strong>What it does:</strong> Iterates over array, processing each item individually.</p>
+        <p><strong>Use case:</strong> Process batch orders, send individual emails to list.</p>
+        <p><strong>Flow:</strong> Trigger → Loop → Transform → (back to Loop) → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Trigger</td><td><code>data: { items: [1, 2, 3, 4, 5] }</code></td></tr>
+          <tr><td>2</td><td>Loop</td><td><code>source: {{lastResult.data.items}}</code></td></tr>
+          <tr><td>3</td><td>Transform</td><td><code>return { value: ctx.item * 2, original: ctx.item };</code></td></tr>
+        </table>
+        <pre><code>// Inside loop, access:
+ctx.item   // Current item (e.g., 1, 2, 3...)
+ctx.index  // Current index (0, 1, 2...)</code></pre>
+        
+        <!-- Example 5 -->
+        <h3 id="ex-notify">5. Notification Flow</h3>
+        <p><strong>What it does:</strong> Sends notifications via Email AND Slack simultaneously.</p>
+        <p><strong>Use case:</strong> Alert multiple channels on new order, system events.</p>
+        <p><strong>Flow:</strong> Trigger → HTTP → (Email + Slack) → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Trigger</td><td>Manual or webhook</td></tr>
+          <tr><td>2</td><td>HTTP</td><td>Fetch data to notify about</td></tr>
+          <tr><td>3a</td><td>Email</td><td><code>to: user@example.com</code><br><code>subject: New: {{lastResult.data.title}}</code></td></tr>
+          <tr><td>3b</td><td>Slack</td><td><code>channel: #notifications</code><br><code>message: {{lastResult.data.title}}</code></td></tr>
+        </table>
+        
+        <!-- Example 6 -->
+        <h3 id="ex-error">6. Error Handling</h3>
+        <p><strong>What it does:</strong> Demonstrates graceful handling of API failures.</p>
+        <p><strong>Use case:</strong> Alert when services are down, retry logic.</p>
+        <p><strong>Flow:</strong> Trigger → HTTP → (Success: Handler | Error: Alert) → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Trigger</td><td>Manual start</td></tr>
+          <tr><td>2</td><td>HTTP</td><td><code>output_1</code>: Success (2xx)<br><code>output_2</code>: Error (4xx, 5xx, timeout)</td></tr>
+          <tr><td>3a</td><td>Success</td><td>Process successful response</td></tr>
+          <tr><td>3b</td><td>Error</td><td>Send alert, log error</td></tr>
+        </table>
+        <pre><code>// Error result structure:
+{ "error": "500 Internal Server Error", "ok": false, "status": 500 }</code></pre>
+        
+        <!-- Example 7 -->
+        <h3 id="ex-fullapi">7. Full API Workflow</h3>
+        <p><strong>What it does:</strong> Complete API integration with auth, validation, filtering.</p>
+        <p><strong>Use case:</strong> Build user dashboard with filtered content.</p>
+        <p><strong>Flow:</strong> Trigger → HTTP → Condition → HTTP → Transform → Filter → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Trigger</td><td><code>data: { userId: 1 }</code></td></tr>
+          <tr><td>2</td><td>HTTP</td><td><code>url: /users/{{data.userId}}</code><br><code>headers: {"Authorization": "Bearer token"}</code></td></tr>
+          <tr><td>3</td><td>Condition</td><td><code>field: company.name, operator: not_empty</code></td></tr>
+          <tr><td>4</td><td>HTTP</td><td><code>url: /posts?userId={{lastResult.data.id}}</code></td></tr>
+          <tr><td>5</td><td>Filter</td><td><code>return item.title.length > 20;</code></td></tr>
+        </table>
+        
+        <!-- Example 8 -->
+        <h3 id="ex-enrich">8. Data Enrichment</h3>
+        <p><strong>What it does:</strong> For each user, fetch posts AND todos, merge together.</p>
+        <p><strong>Use case:</strong> Build complete customer profiles from microservices.</p>
+        <p><strong>Flow:</strong> Trigger → HTTP → Loop → HTTP → Transform → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>HTTP</td><td>Fetch list of users</td></tr>
+          <tr><td>2</td><td>Loop</td><td><code>source: {{lastResult.data}}</code></td></tr>
+          <tr><td>3</td><td>HTTP</td><td><code>url: /posts?userId={{item.id}}</code></td></tr>
+          <tr><td>4</td><td>Transform</td><td><code>return { user: ctx.item, posts: data };</code></td></tr>
+        </table>
+        
+        <!-- Example 9 -->
+        <h3 id="ex-alert">9. Multi-Channel Alert</h3>
+        <p><strong>What it does:</strong> Monitors API health, sends alerts via Email, Slack, PagerDuty.</p>
+        <p><strong>Use case:</strong> Production monitoring, uptime checks.</p>
+        <p><strong>Flow:</strong> Schedule → HTTP → Condition → (OK: Log | Down: Alert → PagerDuty) → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Schedule</td><td><code>cronExpression: */5 * * * *</code> (every 5 min)</td></tr>
+          <tr><td>2</td><td>HTTP</td><td><code>url: /health</code><br><code>timeout_seconds: 5</code></td></tr>
+          <tr><td>3</td><td>Condition</td><td><code>field: status, operator: equals, value: healthy</code></td></tr>
+          <tr><td>4</td><td>Alert</td><td><code>to: ops-team@example.com</code><br><code>subject: API Down!</code></td></tr>
+        </table>
+        
+        <!-- Example 10 -->
+        <h3 id="ex-etl">10. ETL Pipeline</h3>
+        <p><strong>What it does:</strong> Extract-Transform-Load: fetch data, process, save to database.</p>
+        <p><strong>Use case:</strong> Nightly data sync between systems.</p>
+        <p><strong>Flow:</strong> Schedule → HTTP → Filter → Transform → Loop → Database → End</p>
+        <table>
+          <tr><th>Step</th><th>Node</th><th>Configuration</th></tr>
+          <tr><td>1</td><td>Schedule</td><td><code>cronExpression: 0 2 * * *</code> (daily 2 AM)</td></tr>
+          <tr><td>2</td><td>HTTP</td><td>Fetch source data</td></tr>
+          <tr><td>3</td><td>Filter</td><td><code>return item.userId &lt;= 2;</code></td></tr>
+          <tr><td>4</td><td>Transform</td><td><code>return data.map(p => ({ ...p, title: p.title.toUpperCase() }));</code></td></tr>
+          <tr><td>5</td><td>Loop</td><td>Process each item</td></tr>
+          <tr><td>6</td><td>Database</td><td><code>operation: insert, table: posts, data: {{item}}</code></td></tr>
+        </table>
+        
+        <!-- Context Variables -->
+        <h3 id="ex-vars">Context Variables</h3>
+        <p>These variables are available in all node configurations:</p>
+        <table>
+          <tr><th>Variable</th><th>Description</th><th>Example</th></tr>
+          <tr><td><code>ctx</code></td><td>Full execution context</td><td><code>ctx.lastResult</code></td></tr>
+          <tr><td><code>ctx.lastResult</code></td><td>Previous node result</td><td><code>ctx.lastResult.data</code></td></tr>
+          <tr><td><code>ctx.node_N</code></td><td>Specific node by ID</td><td><code>ctx.node_2.data</code></td></tr>
+          <tr><td><code>data</code></td><td>Shortcut for lastResult.data</td><td><code>data.map(...)</code></td></tr>
+          <tr><td><code>ctx.item</code></td><td>Current loop item</td><td><code>ctx.item.id</code></td></tr>
+          <tr><td><code>ctx.index</code></td><td>Current loop index (0-based)</td><td><code>ctx.index + 1</code></td></tr>
+        </table>
+        <h4>Interpolation Syntax</h4>
+        <pre><code>// Use {{}} in string fields:
+url: 'https://api.example.com/users/{{data.userId}}'
+message: 'Processing item {{item.name}} at index {{index}}'
 
-const trigger = builder.addNode('trigger', 100, 200);
-const loop = builder.addNode('loop', 350, 200);
-const action = builder.addNode('action', 600, 200);
-const end = builder.addNode('end', 850, 200);
-
-builder.connect(trigger, loop);
-builder.connect(loop, action);
-builder.connect(action, end);
-
-// Configure loop
-builder.updateNodeData(loop, {
-  items: '[1, 2, 3, 4, 5]'
-});
-
-// In the action, access current item
-builder.updateNodeData(action, {
-  message: 'Processing item: {{item}}, index: {{index}}'
-});</code></pre>
+// Use direct JS in code fields:
+return data.filter(x => x.active);</code></pre>
       </section>
       
       <div class="footer">
@@ -1157,13 +1273,31 @@ builder.updateNodeData(action, {
     
     // Active nav
     const navLinks = document.querySelectorAll('.nav-link');
+    const sidebar = document.querySelector('.sidebar');
     const updateNav = () => {
       let current = '';
+      // Check sections
       document.querySelectorAll('.section').forEach(s => {
         if (window.scrollY >= s.offsetTop - 100) current = s.id;
       });
+      // Check example headings (h3 with id starting with ex-)
+      document.querySelectorAll('h3[id^="ex-"]').forEach(h => {
+        if (window.scrollY >= h.offsetTop - 100) current = h.id;
+      });
       navLinks.forEach(link => {
-        link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+        const isActive = link.getAttribute('href') === '#' + current;
+        link.classList.toggle('active', isActive);
+        // Scroll sidebar to keep active link visible
+        if (isActive && sidebar) {
+          const linkTop = link.offsetTop;
+          const sidebarHeight = sidebar.clientHeight;
+          const sidebarScroll = sidebar.scrollTop;
+          if (linkTop < sidebarScroll + 100) {
+            sidebar.scrollTo({ top: Math.max(0, linkTop - 100), behavior: 'smooth' });
+          } else if (linkTop > sidebarScroll + sidebarHeight - 100) {
+            sidebar.scrollTo({ top: linkTop - sidebarHeight + 150, behavior: 'smooth' });
+          }
+        }
       });
     };
     window.addEventListener('scroll', updateNav);

@@ -197,6 +197,13 @@ Use `{{variable}}` syntax to reference data from previous nodes:
 | `Ctrl+A` | Select all |
 | `Ctrl+G` | Group selected |
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [EXAMPLES.md](./EXAMPLES.md) | Detailed walkthrough of every example workflow with diagrams, step-by-step explanations, and context variable reference |
+| [DOCUMENTATION.md](./DOCUMENTATION.md) | Complete API documentation, node types, executors, and configuration options |
+
 ## What's Next (Roadmap)
 
 ### Client-Side (Coming Soon)

@@ -1142,8 +1142,24 @@ class HttpExecutor extends BaseNodeExecutor {
       } catch (e) {}
     }
     
+    // Set up timeout
+    const timeoutMs = (parseInt(config.timeout_seconds) || parseInt(config.timeout) || 30) * 1000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    // Combine with parent signal if provided
+    const combinedSignal = signal 
+      ? { signal: controller.signal }  // Use our timeout signal
+      : { signal: controller.signal };
+    
+    // If parent signal aborts, also abort our controller
+    if (signal) {
+      signal.addEventListener('abort', () => controller.abort());
+    }
+    
     try {
-      const response = await fetch(url, { method, headers, body, signal });
+      const response = await fetch(url, { method, headers, body, ...combinedSignal });
+      clearTimeout(timeoutId);
       
       let data;
       const contentType = response.headers.get('content-type');
@@ -1170,10 +1186,14 @@ class HttpExecutor extends BaseNodeExecutor {
         request: { method, url, headers, body }  // Echo request for debugging
       };
     } catch (error) {
+      clearTimeout(timeoutId);
+      const isTimeout = error.name === 'AbortError' && !signal?.aborted;
+      const errorMessage = isTimeout ? `Request timed out after ${timeoutMs/1000}s` : error.message;
+      
       if (config.ignore_errors) {
-        return { output: 'output_1', data: null, error: error.message };
+        return { output: 'output_1', data: null, error: errorMessage, timedOut: isTimeout };
       }
-      return { output: 'output_2', error: error.message, ok: false, request: { method, url, headers, body } };
+      return { output: 'output_2', error: errorMessage, ok: false, timedOut: isTimeout, request: { method, url, headers, body } };
     }
   }
 }
@@ -1385,10 +1405,24 @@ class DatabaseExecutor extends BaseNodeExecutor {
         default: 'query'
       },
       {
+        key: 'table',
+        label: 'Table / Collection',
+        type: 'text',
+        placeholder: 'users'
+      },
+      {
         key: 'query',
-        label: 'Query / Collection',
+        label: 'Query (for query operation)',
         type: 'textarea',
-        placeholder: 'SELECT * FROM users WHERE id = {{userId}}'
+        placeholder: 'SELECT * FROM users WHERE id = {{userId}}',
+        showIf: { operation: 'query' }
+      },
+      {
+        key: 'data',
+        label: 'Data (JSON)',
+        type: 'json',
+        default: '{}',
+        placeholder: '{{item}}'
       },
       {
         key: 'params',
@@ -1400,20 +1434,53 @@ class DatabaseExecutor extends BaseNodeExecutor {
   }
 
   static async execute(node, config, context, signal) {
+    const operation = config.operation || 'query';
+    const table = this.interpolate(config.table || '', context);
     const query = this.interpolate(config.query || '', context);
+    
+    // Parse and interpolate data
+    let data = {};
+    try {
+      const dataStr = this.interpolate(config.data || '{}', context);
+      data = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
+    } catch (e) {
+      data = config.data || {};
+    }
     
     // Simulate database operation
     // In production, this would connect to actual database
+    console.log(`[Database] ${operation.toUpperCase()} on ${table || 'table'}:`, { query, data });
     
-    // Return simulated result
+    // Return simulated result based on operation
+    const result = {
+      operation,
+      table,
+      executedAt: new Date().toISOString()
+    };
+    
+    switch (operation) {
+      case 'insert':
+        result.inserted = data;
+        result.insertedId = Math.floor(Math.random() * 10000);
+        break;
+      case 'update':
+        result.updated = data;
+        result.affectedRows = 1;
+        break;
+      case 'delete':
+        result.affectedRows = 1;
+        break;
+      case 'query':
+      default:
+        result.query = query;
+        result.rows = [];
+        result.rowCount = 0;
+        break;
+    }
+    
     return {
       output: 'output_1',
-      data: {
-        query,
-        rows: [],
-        rowCount: 0,
-        executedAt: new Date().toISOString()
-      }
+      data: result
     };
   }
 }

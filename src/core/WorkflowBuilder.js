@@ -7931,10 +7931,8 @@ export class WorkflowBuilder {
             url: 'https://jsonplaceholder.typicode.com/todos/1'
           }},
           { id: 3, type: 'condition', x: 660, y: 300, inputs: 1, outputs: 2, config: {
-            conditionType: 'field',
-            field: 'completed',
-            operator: 'equals',
-            value: 'true'
+            conditionType: 'javascript',
+            js_condition: 'return ctx.lastResult?.data?.completed === true;'
           }},
           { id: 4, type: 'action', x: 940, y: 180, inputs: 1, outputs: 1, config: {} },
           { id: 5, type: 'action', x: 940, y: 420, inputs: 1, outputs: 1, config: {} },
@@ -7962,7 +7960,7 @@ export class WorkflowBuilder {
           }},
           { id: 3, type: 'transform', x: 700, y: 180, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
-            code: 'return { value: data * 2 };'
+            code: 'return { value: ctx.item * 2, original: ctx.item };'
           }},
           { id: 4, type: 'end', x: 700, y: 400, inputs: 1, outputs: 0 }
         ],
@@ -8054,8 +8052,9 @@ export class WorkflowBuilder {
             code: 'return { user: context.node_2.data, posts: data, postCount: data.length };'
           }},
           { id: 6, type: 'filter', x: 1500, y: 180, inputs: 1, outputs: 1, config: {
-            filterType: 'javascript',
-            code: 'return data.posts.filter(p => p.title.length > 20);'
+            source: '{{lastResult.data.posts}}',
+            filter_type: 'javascript',
+            filter_code: 'return item.title && item.title.length > 20;'
           }},
           { id: 7, type: 'action', x: 940, y: 420, inputs: 1, outputs: 1, config: {
             actionName: 'Log Invalid User'
@@ -8098,7 +8097,7 @@ export class WorkflowBuilder {
           }},
           { id: 6, type: 'transform', x: 1220, y: 280, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
-            code: 'return { user: context.item, posts: context.node_4.data, todos: data };'
+            code: 'return { user: ctx.item, posts: ctx.node_4?.data, todos: data };'
           }},
           { id: 7, type: 'end', x: 1500, y: 280, inputs: 1, outputs: 0 }
         ],
@@ -8124,7 +8123,7 @@ export class WorkflowBuilder {
           { id: 2, type: 'http', x: 380, y: 320, inputs: 1, outputs: 2, config: {
             method: 'GET',
             url: 'https://api.example.com/health',
-            timeout: 5000
+            timeout_seconds: 5
           }},
           { id: 3, type: 'condition', x: 660, y: 320, inputs: 1, outputs: 2, config: {
             conditionType: 'field',
@@ -8206,7 +8205,7 @@ export class WorkflowBuilder {
           }},
           { id: 9, type: 'transform', x: 1300, y: 420, inputs: 1, outputs: 1, config: {
             transformType: 'javascript',
-            code: 'return { processed: context.loopIndex, timestamp: new Date().toISOString() };'
+            code: 'return { processed: ctx.index + 1, timestamp: new Date().toISOString() };'
           }},
           { id: 10, type: 'email', x: 1540, y: 420, inputs: 1, outputs: 1, config: {
             to: 'data-team@example.com',
