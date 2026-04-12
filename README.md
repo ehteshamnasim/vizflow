@@ -2,7 +2,7 @@
 
 A powerful visual workflow builder with execution engine, API testing, and full request/response visibility. Build, test, and export automation workflows in the browser.
 
-**[Live Demo](https://flowkit-app.netlify.app/)**
+**[Live Demo](https://viz-flow.netlify.app/)**
 
 ## Features
 
