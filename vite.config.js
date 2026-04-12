@@ -43,7 +43,13 @@ export default defineConfig({
     // App build for demo/Netlify
     outDir: 'dist',
     sourcemap: false,
-    minify: true
+    minify: true,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        docs: resolve(__dirname, 'docs.html')
+      }
+    }
   },
   
   /**
