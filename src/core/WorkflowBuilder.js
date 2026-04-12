@@ -7436,8 +7436,12 @@ export class WorkflowBuilder {
     try {
       const workflow = this.export();
       if (workflow) {
+        // Include execution state if available
+        const executionState = this.executor ? this.executor.exportState() : null;
+        
         localStorage.setItem(this._storageKey, JSON.stringify({
           workflow,
+          executionState,
           timestamp: Date.now()
         }));
         this.hasUnsavedChanges = false;
@@ -7456,7 +7460,7 @@ export class WorkflowBuilder {
     try {
       const saved = localStorage.getItem(this._storageKey);
       if (saved) {
-        const { workflow, timestamp } = JSON.parse(saved);
+        const { workflow, executionState, timestamp } = JSON.parse(saved);
         const age = Date.now() - timestamp;
         const hours = Math.floor(age / (1000 * 60 * 60));
         
@@ -7467,6 +7471,15 @@ export class WorkflowBuilder {
             this.import(workflow);
             // Color condition connections after restore
             setTimeout(() => this._colorConditionConnections(), 100);
+            
+            // Restore execution state if available
+            if (executionState && this.executor) {
+              setTimeout(() => {
+                this.executor.importState(executionState);
+                this._updateExecutionLog();
+              }, 200);
+            }
+            
             this._setStatus('Draft restored');
           });
         }

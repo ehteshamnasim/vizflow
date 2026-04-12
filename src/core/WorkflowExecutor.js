@@ -577,4 +577,41 @@ export class WorkflowExecutor {
   getContext() {
     return this.executionContext;
   }
+
+  /**
+   * Export execution state for persistence
+   */
+  exportState() {
+    return {
+      executionHistory: this.executionHistory,
+      executionContext: this.executionContext,
+      nodeStates: Array.from(this.nodeStates.entries())
+    };
+  }
+
+  /**
+   * Import execution state from persistence
+   */
+  importState(state) {
+    if (!state) return;
+    
+    // Restore history
+    if (state.executionHistory) {
+      this.executionHistory = state.executionHistory;
+    }
+    
+    // Restore context
+    if (state.executionContext) {
+      this.executionContext = state.executionContext;
+    }
+    
+    // Restore node visual states
+    if (state.nodeStates) {
+      this.nodeStates = new Map(state.nodeStates);
+      // Reapply visual states to nodes
+      this.nodeStates.forEach((nodeState, nodeId) => {
+        this.setNodeState(nodeId, nodeState);
+      });
+    }
+  }
 }
