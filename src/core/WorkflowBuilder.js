@@ -3015,6 +3015,41 @@ export class WorkflowBuilder {
   }
 
   /**
+   * Get execution state (for persistence)
+   * Returns node states, execution history, and context
+   */
+  getExecutionState() {
+    if (!this.executor) return null;
+    return this.executor.exportState();
+  }
+
+  /**
+   * Set execution state (restore from persistence)
+   * @param {Object} state - State object from getExecutionState()
+   */
+  setExecutionState(state) {
+    if (!this.executor || !state) return;
+    this.executor.importState(state);
+    this._updateExecutionLog();
+  }
+
+  /**
+   * Get execution log history
+   */
+  getExecutionLog() {
+    if (!this.executor) return [];
+    return this.executor.getLog();
+  }
+
+  /**
+   * Get execution context (data passed between nodes)
+   */
+  getExecutionContext() {
+    if (!this.executor) return {};
+    return this.executor.getContext();
+  }
+
+  /**
    * Toggle execution log panel visibility
    */
   toggleExecutionLog() {

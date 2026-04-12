@@ -21,6 +21,7 @@ A powerful visual workflow builder with execution engine, API testing, and full 
 - **Conditional Branching** - Route flows based on conditions
 - **Loops** - Iterate over arrays
 - **Code Execution** - Run JavaScript code in nodes
+- **State Persistence** - Execution state auto-saves and restores on page reload
 
 ### Debugging & Testing
 - **Test Single Node** - Right-click → "Test This Node Only"
@@ -134,6 +135,18 @@ workflow.stopWorkflow();
 
 // Reset execution state
 workflow.resetWorkflow();
+
+// Get execution state (for custom persistence)
+const state = workflow.getExecutionState();
+
+// Restore execution state
+workflow.setExecutionState(state);
+
+// Get execution log
+const log = workflow.getExecutionLog();
+
+// Get execution context (data between nodes)
+const ctx = workflow.getExecutionContext();
 ```
 
 ### Data
