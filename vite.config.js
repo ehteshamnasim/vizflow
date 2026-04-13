@@ -24,7 +24,6 @@ export default defineConfig({
    * Build Configuration
    */
   build: isLibBuild ? {
-    // Library build for npm
     lib: {
       entry: resolve(__dirname, 'src/index.js'),
       name: 'WorkflowBuilder',
