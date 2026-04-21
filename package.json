@@ -39,13 +39,13 @@
   ],
   "author": "Ehtesham",
   "license": "MIT",
-  "homepage": "https://github.com/ehtesham/flowkit#readme",
+  "homepage": "https://flowkit-five.vercel.app/",
   "bugs": {
-    "url": "https://github.com/ehtesham/flowkit/issues"
+    "url": "https://github.com/ehteshamnasim/vizflow/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ehtesham/flowkit.git"
+    "url": "git+https://github.com/ehteshamnasim/vizflow.git"
   },
   "dependencies": {
     "drawflow": "^0.0.60"

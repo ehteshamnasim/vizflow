@@ -6,7 +6,7 @@ A powerful visual workflow builder with execution engine, API testing, and full 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <p align="center">
-  <img src="https://github.com/ehteshamnasim/vizflow/blob/main/assets/screenshot.png?raw=true" alt="VizFlow Screenshot" width="100%">
+  <img src="https://raw.githubusercontent.com/ehteshamnasim/vizflow/main/assets/screenshot.png" alt="VizFlow Screenshot" width="100%">
 </p>
 
 **[Live Demo](https://flowkit-five.vercel.app/)** | **[Documentation](https://flowkit-five.vercel.app/docs.html)**
