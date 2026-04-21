@@ -45,17 +45,39 @@ npm install flowkit
 
 ## Quick Start
 
+### ES Modules (Recommended)
+
+```javascript
+import { WorkflowBuilder, icons } from 'flowkit';
+import 'flowkit/style.css';
+
+const workflow = new WorkflowBuilder('#app', {
+  theme: 'light',
+  nodes: ['trigger', 'http', 'condition', 'email', 'slack', 'end']
+});
+
+// Run the workflow
+workflow.runWorkflow();
+```
+
+### UMD (Script Tag)
+
 ```html
+<link rel="stylesheet" href="https://unpkg.com/flowkit/dist/style.css">
+<script src="https://unpkg.com/flowkit/dist/flowkit.umd.js"></script>
+
 <div id="app"></div>
 
-<script type="module">
-  import { WorkflowBuilder } from 'flowkit';
-
-  const workflow = new WorkflowBuilder('#app', {
-    theme: 'light',
-    nodes: ['trigger', 'http', 'condition', 'email', 'slack', 'end']
-  });
+<script>
+  const { WorkflowBuilder } = FlowKit;
+  const workflow = new WorkflowBuilder('#app');
 </script>
+```
+
+### CommonJS
+
+```javascript
+const { WorkflowBuilder } = require('flowkit');
 ```
 
 ## Configuration Options
@@ -239,6 +261,14 @@ Use `{{variable}}` syntax to reference data from previous nodes:
 - **Frontend**: Vanilla JS, Drawflow, Vite
 - **Icons**: 60+ custom SVGs
 - **Styling**: CSS variables, dark/light themes
+- **Bundle Size**: ~365KB ES, ~248KB UMD (gzipped: ~76KB / ~60KB)
+
+## Browser Support
+
+- Chrome 80+
+- Firefox 75+
+- Safari 13+
+- Edge 80+
 
 ## License
 

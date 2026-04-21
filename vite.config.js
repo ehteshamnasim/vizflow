@@ -26,18 +26,20 @@ export default defineConfig({
   build: isLibBuild ? {
     lib: {
       entry: resolve(__dirname, 'src/index.js'),
-      name: 'WorkflowBuilder',
-      fileName: (format) => `workflow-builder.${format}.js`,
+      name: 'FlowKit',
+      fileName: (format) => `flowkit.${format}.js`,
       formats: ['es', 'umd']
     },
     rollupOptions: {
       external: [],
       output: {
-        globals: {}
+        globals: {},
+        exports: 'named'
       }
     },
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    cssCodeSplit: false
   } : {
     // App build for demo/Netlify
     outDir: 'dist',
