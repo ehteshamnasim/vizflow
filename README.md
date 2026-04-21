@@ -1,12 +1,12 @@
-# FlowKit
+# VizFlow
 
 A powerful visual workflow builder with execution engine, API testing, and full request/response visibility. Build, test, and export automation workflows in the browser.
 
-[![npm version](https://img.shields.io/npm/v/flowkit.svg)](https://www.npmjs.com/package/flowkit)
+[![npm version](https://img.shields.io/npm/v/vizflow.svg)](https://www.npmjs.com/package/vizflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ehtesham/flowkit/main/assets/screenshot.png" alt="FlowKit Screenshot" width="100%">
+  <img src="https://raw.githubusercontent.com/ehteshamnasim/vizflow/main/assets/screenshot.png" alt="VizFlow Screenshot" width="100%">
 </p>
 
 **[Live Demo](https://viz-flow.netlify.app/)** | **[Documentation](https://viz-flow.netlify.app/docs.html)**
@@ -47,7 +47,7 @@ A powerful visual workflow builder with execution engine, API testing, and full 
 ## Installation
 
 ```bash
-npm install flowkit
+npm install vizflow
 ```
 
 ## Quick Start
@@ -55,8 +55,8 @@ npm install flowkit
 ### ES Modules (Recommended)
 
 ```javascript
-import { WorkflowBuilder, icons } from 'flowkit';
-import 'flowkit/style.css';
+import { WorkflowBuilder, icons } from 'vizflow';
+import 'vizflow/style.css';
 
 const workflow = new WorkflowBuilder('#app', {
   theme: 'light',
@@ -70,13 +70,13 @@ workflow.runWorkflow();
 ### UMD (Script Tag)
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/flowkit/dist/style.css">
-<script src="https://unpkg.com/flowkit/dist/flowkit.umd.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/vizflow/dist/style.css">
+<script src="https://unpkg.com/vizflow/dist/vizflow.umd.js"></script>
 
 <div id="app"></div>
 
 <script>
-  const { WorkflowBuilder } = FlowKit;
+  const { WorkflowBuilder } = VizFlow;
   const workflow = new WorkflowBuilder('#app');
 </script>
 ```
@@ -84,7 +84,7 @@ workflow.runWorkflow();
 ### CommonJS
 
 ```javascript
-const { WorkflowBuilder } = require('flowkit');
+const { WorkflowBuilder } = require('vizflow');
 ```
 
 ## Configuration Options
@@ -283,4 +283,4 @@ MIT
 
 ---
 
-**FlowKit** - Build, test, and visualize workflows in the browser.
+**VizFlow** - Build, test, and visualize workflows in the browser.

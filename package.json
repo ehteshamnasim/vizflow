@@ -1,14 +1,14 @@
 {
-  "name": "flowkit",
+  "name": "vizflow",
   "version": "0.9.0",
-  "description": "FlowKit - A powerful visual workflow builder with 80+ nodes, API testing, and full execution engine. Build, test, and export automation workflows.",
-  "main": "dist/flowkit.umd.js",
-  "module": "dist/flowkit.es.js",
+  "description": "VizFlow - A powerful visual workflow builder with 80+ nodes, API testing, and full execution engine. Build, test, and export automation workflows.",
+  "main": "dist/vizflow.umd.js",
+  "module": "dist/vizflow.es.js",
   "types": "src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/flowkit.es.js",
-      "require": "./dist/flowkit.umd.js",
+      "import": "./dist/vizflow.es.js",
+      "require": "./dist/vizflow.umd.js",
       "types": "./src/index.d.ts"
     },
     "./style.css": "./dist/style.css"

@@ -26,8 +26,8 @@ export default defineConfig({
   build: isLibBuild ? {
     lib: {
       entry: resolve(__dirname, 'src/index.js'),
-      name: 'FlowKit',
-      fileName: (format) => `flowkit.${format}.js`,
+      name: 'VizFlow',
+      fileName: (format) => `vizflow.${format}.js`,
       formats: ['es', 'umd']
     },
     rollupOptions: {
