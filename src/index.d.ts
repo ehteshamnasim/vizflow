@@ -499,6 +499,234 @@ export const icons: {
 };
 
 // ============================================================================
+// WORKFLOW EXECUTOR
+// ============================================================================
+
+export interface ExecutionResult {
+  /** Which output to follow ('output_1', 'output_2', etc.) */
+  output: string;
+  /** Data to pass to downstream nodes */
+  data: any;
+  /** Whether this is a loop node */
+  isLoop?: boolean;
+  /** Variable name for loop item */
+  itemVariable?: string;
+  /** Variable name for loop index */
+  indexVariable?: string;
+}
+
+export interface ExecutionContext {
+  /** Results from each node, keyed by 'node_X' */
+  [key: string]: any;
+  /** Result from the previous node */
+  lastResult?: any;
+}
+
+export interface ExecutionCallbacks {
+  /** Called when a node starts executing */
+  onNodeStart?: (nodeId: string | number) => void;
+  /** Called when a node completes */
+  onNodeComplete?: (nodeId: string | number, result: ExecutionResult) => void;
+  /** Called when a node errors */
+  onNodeError?: (nodeId: string | number, error: Error) => void;
+  /** Called when entire workflow completes */
+  onExecutionComplete?: (results: ExecutionContext) => void;
+}
+
+export class WorkflowExecutor {
+  /**
+   * Create a workflow executor
+   * @param workflowData - Exported workflow data
+   * @param callbacks - Execution callbacks
+   */
+  constructor(workflowData: WorkflowData, callbacks?: ExecutionCallbacks);
+
+  /**
+   * Run the entire workflow from start nodes
+   */
+  runWorkflow(): Promise<ExecutionContext>;
+
+  /**
+   * Execute starting from a specific node
+   * @param nodeId - Node ID to start from
+   */
+  executeFromNode(nodeId: string | number): Promise<ExecutionContext>;
+
+  /**
+   * Stop workflow execution
+   */
+  stop(): void;
+
+  /**
+   * Get execution history
+   */
+  getHistory(): ExecutionResult[];
+}
+
+// ============================================================================
+// NODE EXECUTORS
+// ============================================================================
+
+export interface ExecutorConfigField {
+  key: string;
+  label: string;
+  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox';
+  default?: any;
+  options?: { value: string; label: string }[];
+}
+
+/**
+ * Base class for creating custom node executors
+ */
+export class BaseNodeExecutor {
+  /**
+   * Get configuration schema for this executor
+   */
+  static getConfigSchema(): ExecutorConfigField[];
+
+  /**
+   * Execute the node
+   * @param node - Node data
+   * @param config - Node configuration
+   * @param context - Execution context
+   * @param signal - AbortSignal for cancellation
+   */
+  static execute(
+    node: DrawflowNode,
+    config: Record<string, any>,
+    context: ExecutionContext,
+    signal?: AbortSignal
+  ): Promise<ExecutionResult>;
+
+  /**
+   * Interpolate variables in a string
+   * @param template - Template string with {{variable}} placeholders
+   * @param context - Context with variable values
+   */
+  static interpolate(template: string, context: ExecutionContext): string;
+}
+
+export class TriggerExecutor extends BaseNodeExecutor {}
+export class ActionExecutor extends BaseNodeExecutor {}
+export class ConditionExecutor extends BaseNodeExecutor {}
+export class LoopExecutor extends BaseNodeExecutor {}
+export class TransformExecutor extends BaseNodeExecutor {}
+export class EndExecutor extends BaseNodeExecutor {}
+export class GenericExecutor extends BaseNodeExecutor {}
+
+/**
+ * Registry for node executors
+ */
+export class NodeExecutorRegistry {
+  /**
+   * Register an executor for a node type
+   * @param nodeType - Node type name
+   * @param executor - Executor class
+   */
+  static register(nodeType: string, executor: typeof BaseNodeExecutor): void;
+
+  /**
+   * Get executor for a node type
+   * @param nodeType - Node type name
+   */
+  static get(nodeType: string): typeof BaseNodeExecutor;
+
+  /**
+   * Check if executor exists for type
+   * @param nodeType - Node type name
+   */
+  static has(nodeType: string): boolean;
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Validate workflow data structure
+ */
+export function validateWorkflow(data: WorkflowData): ValidationResult;
+
+/**
+ * Get array of nodes from workflow data
+ */
+export function getNodesFromWorkflow(data: WorkflowData): DrawflowNode[];
+
+/**
+ * Count total connections in workflow
+ */
+export function getConnectionCount(data: WorkflowData): number;
+
+/**
+ * Find nodes with no connections
+ */
+export function findDisconnectedNodes(data: WorkflowData): number[];
+
+/**
+ * Convert workflow to Mermaid diagram syntax
+ */
+export function workflowToMermaid(data: WorkflowData): string;
+
+/**
+ * Deep clone workflow data
+ */
+export function cloneWorkflow(data: WorkflowData): WorkflowData;
+
+/**
+ * Generate unique workflow ID
+ */
+export function generateWorkflowId(): string;
+
+/**
+ * Create workflow metadata object
+ */
+export function createWorkflowMetadata(workflow: WorkflowData): WorkflowMetadata;
+
+/**
+ * Extract core data from workflow
+ */
+export function extractWorkflowData(data: any): WorkflowData;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Create a node definition from config
+ */
+export function createNodeDefinition(config: Partial<NodeDefinition>): NodeDefinition;
+
+/**
+ * Create a custom executor class
+ * @param executeFn - Execute function
+ * @param configSchema - Configuration schema
+ */
+export function createCustomExecutor(
+  executeFn: (
+    node: DrawflowNode,
+    config: Record<string, any>,
+    context: ExecutionContext,
+    signal?: AbortSignal
+  ) => Promise<ExecutionResult>,
+  configSchema?: ExecutorConfigField[]
+): typeof BaseNodeExecutor;
+
+// ============================================================================
+// DEFAULT NODE TYPES
+// ============================================================================
+
+/**
+ * Default node type definitions
+ */
+export const defaultNodeTypes: Record<string, NodeDefinition>;
+
+// ============================================================================
+// DEFAULT EXPORT
+// ============================================================================
+
+export default WorkflowBuilder;
+
+// ============================================================================
 // DEFAULT NODE TYPES
 // ============================================================================
 

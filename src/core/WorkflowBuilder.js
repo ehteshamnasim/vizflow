@@ -753,6 +753,11 @@ export class WorkflowBuilder {
     this.drawflow.start();
     
     /**
+     * Initialize mobile/touch support
+     */
+    this._initMobileSupport();
+    
+    /**
      * Initialize Workflow Executor
      */
     this.executor = new WorkflowExecutor(this);
@@ -762,6 +767,107 @@ export class WorkflowBuilder {
      * Set max zoom to allow up to 200%
      */
     this.drawflow.zoom_max = 2;
+  }
+  
+  /**
+   * --------------------------------------------------------------------------
+   * PRIVATE: MOBILE SUPPORT
+   * --------------------------------------------------------------------------
+   * 
+   * Detects mobile/touch devices and adds appropriate support:
+   * - Pinch-to-zoom on canvas
+   * - Auto-adjust initial zoom for small screens
+   * - Add mobile class for CSS styling
+   * 
+   * --------------------------------------------------------------------------
+   */
+  _initMobileSupport() {
+    const isMobile = this._isMobileDevice();
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    // Add classes for CSS targeting
+    if (isMobile) {
+      this.container.classList.add('is-mobile');
+    }
+    if (isTouch) {
+      this.container.classList.add('is-touch');
+    }
+    
+    // Auto-adjust zoom for small screens
+    if (window.innerWidth < 768) {
+      // Start at 80% zoom on small screens
+      this.drawflow.zoom = 0.8;
+      this.drawflow.zoom_refresh();
+      this._updateZoomDisplay();
+    }
+    
+    // Add pinch-to-zoom support
+    if (isTouch) {
+      this._initPinchZoom();
+    }
+  }
+  
+  /**
+   * Detect if device is mobile
+   */
+  _isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (window.innerWidth <= 768);
+  }
+  
+  /**
+   * Initialize pinch-to-zoom gesture support
+   */
+  _initPinchZoom() {
+    const canvas = this.container.querySelector('#drawflow-canvas');
+    if (!canvas) return;
+    
+    let initialDistance = 0;
+    let initialZoom = 1;
+    
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialDistance = Math.hypot(
+          e.touches[0].pageX - e.touches[1].pageX,
+          e.touches[0].pageY - e.touches[1].pageY
+        );
+        initialZoom = this.drawflow.zoom;
+        e.preventDefault();
+      }
+    }, { passive: false });
+    
+    canvas.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        
+        const currentDistance = Math.hypot(
+          e.touches[0].pageX - e.touches[1].pageX,
+          e.touches[0].pageY - e.touches[1].pageY
+        );
+        
+        const scale = currentDistance / initialDistance;
+        let newZoom = initialZoom * scale;
+        
+        // Clamp zoom
+        const minZoom = this.drawflow.zoom_min || 0.1;
+        const maxZoom = this.drawflow.zoom_max || 2;
+        newZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+        
+        this.drawflow.zoom = newZoom;
+        this.drawflow.zoom_refresh();
+        this._updateZoomDisplay();
+      }
+    }, { passive: false });
+    
+    // Prevent context menu on long press
+    canvas.addEventListener('contextmenu', (e) => {
+      if ('ontouchstart' in window) {
+        e.preventDefault();
+      }
+    });
+    
+    // Enable touch scrolling/panning
+    canvas.style.touchAction = 'none';
   }
 
 
@@ -1840,7 +1946,17 @@ export class WorkflowBuilder {
     }
 
     propertiesContent.querySelector('[data-action="delete-node"]').addEventListener('click', () => {
-      this.drawflow.removeNodeId(`node-${nodeId}`);
+      const nodeData = this.drawflow.getNodeFromId(nodeId);
+      const nodeName = nodeData?.data?.name || nodeData?.name || 'this node';
+      
+      this._showConfirmDialog(
+        'Delete Node',
+        `Are you sure you want to delete "${nodeName}"?`,
+        () => {
+          this.drawflow.removeNodeId(`node-${nodeId}`);
+          this._setStatus('Node deleted');
+        }
+      );
     });
   }
 
@@ -2752,6 +2868,8 @@ export class WorkflowBuilder {
     this.executor.onNodeError = (nodeId, node, error) => {
       this._setStatus(`Error in ${node.name}: ${error.message}`);
       this._updateExecutionLog();
+      // Show error UI on the failed node
+      this._showNodeError(nodeId, node, error);
     };
     
     this.executor.onExecutionStart = () => {
@@ -3823,11 +3941,17 @@ export class WorkflowBuilder {
     // First try multi-selected nodes
     if (this.selectedNodes && this.selectedNodes.size > 0) {
       const count = this.selectedNodes.size;
-      this.selectedNodes.forEach(id => {
-        this.drawflow.removeNodeId(`node-${id}`);
-      });
-      this.clearSelection();
-      this._setStatus(`${count} nodes deleted`);
+      this._showConfirmDialog(
+        'Delete Nodes',
+        `Are you sure you want to delete ${count} selected node${count > 1 ? 's' : ''}?`,
+        () => {
+          this.selectedNodes.forEach(id => {
+            this.drawflow.removeNodeId(`node-${id}`);
+          });
+          this.clearSelection();
+          this._setStatus(`${count} node${count > 1 ? 's' : ''} deleted`);
+        }
+      );
       return;
     }
     
@@ -3835,8 +3959,17 @@ export class WorkflowBuilder {
     const selectedNode = this.container.querySelector('.drawflow-node.selected');
     if (selectedNode) {
       const nodeId = selectedNode.id.replace('node-', '');
-      this.drawflow.removeNodeId(`node-${nodeId}`);
-      this._setStatus('Node deleted');
+      const nodeData = this.drawflow.getNodeFromId(nodeId);
+      const nodeName = nodeData?.data?.name || nodeData?.name || 'this node';
+      
+      this._showConfirmDialog(
+        'Delete Node',
+        `Are you sure you want to delete "${nodeName}"?`,
+        () => {
+          this.drawflow.removeNodeId(`node-${nodeId}`);
+          this._setStatus('Node deleted');
+        }
+      );
     }
   }
 
@@ -7751,7 +7884,7 @@ export class WorkflowBuilder {
    */
   _showModal(title, content) {
     // Remove existing generic modal
-    const existing = this.container.querySelector('#generic-modal');
+    const existing = document.getElementById('generic-modal');
     if (existing) existing.remove();
     
     // Create modal
@@ -7771,11 +7904,103 @@ export class WorkflowBuilder {
       </div>
     `;
     
-    this.container.appendChild(modal);
+    document.body.appendChild(modal);
     
     // Close handlers
     modal.querySelector('.modal-overlay').addEventListener('click', () => modal.remove());
     modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+  }
+  
+  /**
+   * Show a confirmation dialog
+   */
+  _showConfirmDialog(title, message, onConfirm) {
+    // Remove existing confirm dialog
+    const existing = document.getElementById('confirm-dialog');
+    if (existing) existing.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'confirm-dialog';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;z-index:9999;';
+    modal.innerHTML = `
+      <div class="modal-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);"></div>
+      <div class="modal-content" style="position:relative;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);width:90%;max-width:400px;max-height:90vh;overflow:hidden;animation:modalIn 0.2s ease-out;">
+        <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb;">
+          <h3 style="margin:0;font-size:16px;font-weight:600;color:#1f2937;">${title}</h3>
+          <button class="modal-close" data-action="close-modal" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;font-size:24px;color:#9ca3af;cursor:pointer;border-radius:4px;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+          <p style="margin:0;color:#4b5563;">${message}</p>
+        </div>
+        <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid #e5e7eb;background:#f9fafb;">
+          <button class="btn btn-secondary" data-action="cancel" style="padding:8px 16px;font-size:14px;font-weight:500;border-radius:6px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#374151;">Cancel</button>
+          <button class="btn btn-danger" data-action="confirm" style="padding:8px 16px;font-size:14px;font-weight:500;border-radius:6px;cursor:pointer;border:none;background:#ef4444;color:#fff;">Delete</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close handlers
+    const closeModal = () => modal.remove();
+    modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+    modal.querySelector('.modal-close').addEventListener('click', closeModal);
+    modal.querySelector('[data-action="cancel"]').addEventListener('click', closeModal);
+    modal.querySelector('[data-action="confirm"]').addEventListener('click', () => {
+      closeModal();
+      if (onConfirm) onConfirm();
+    });
+    
+    // Focus the confirm button
+    modal.querySelector('[data-action="confirm"]').focus();
+  }
+  
+  /**
+   * Show error UI on a failed node
+   */
+  _showNodeError(nodeId, node, error) {
+    const nodeElement = this.container.querySelector(`#node-${nodeId}`);
+    if (!nodeElement) return;
+    
+    // Add error class to node
+    nodeElement.classList.add('node-error');
+    
+    // Remove any existing error tooltip
+    const existingTooltip = nodeElement.querySelector('.node-error-tooltip');
+    if (existingTooltip) existingTooltip.remove();
+    
+    // Create error tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'node-error-tooltip';
+    tooltip.innerHTML = `
+      <div class="error-icon">\u26a0</div>
+      <div class="error-content">
+        <div class="error-title">Execution Failed</div>
+        <div class="error-message">${error.message}</div>
+      </div>
+      <button class="error-close">&times;</button>
+    `;
+    
+    // Add to node
+    const workflowNode = nodeElement.querySelector('.workflow-node');
+    if (workflowNode) {
+      workflowNode.appendChild(tooltip);
+      
+      // Close button handler
+      tooltip.querySelector('.error-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        tooltip.remove();
+        nodeElement.classList.remove('node-error');
+      });
+      
+      // Auto-remove after 10 seconds
+      setTimeout(() => {
+        if (tooltip.parentNode) {
+          tooltip.remove();
+          nodeElement.classList.remove('node-error');
+        }
+      }, 10000);
+    }
   }
 
   /**

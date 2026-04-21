@@ -1,0 +1,41 @@
+# Source files (only dist is needed)
+src/
+public/
+
+# Development files
+*.map
+.vscode/
+.idea/
+.git/
+.github/
+
+# Config files
+vite.config.js
+netlify.toml
+.editorconfig
+.eslintrc*
+.prettierrc*
+tsconfig.json
+
+# Documentation (keep README)
+docs/
+DOCUMENTATION.md
+EXAMPLES.md
+docs.html
+
+# Demo files
+index.html
+
+# Test files
+tests/
+__tests__/
+*.test.js
+*.spec.js
+coverage/
+
+# Misc
+.DS_Store
+*.log
+npm-debug.log*
+.env*
+node_modules/

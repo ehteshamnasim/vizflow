@@ -1030,12 +1030,115 @@
   .workflow-properties {
     display: none;
   }
+  
+  /* Hide minimap on smaller screens */
+  .workflow-minimap {
+    display: none !important;
+  }
 }
 
 @media (max-width: 700px) {
   .workflow-sidebar {
     display: none;
   }
+}
+
+/* ============================================================================
+   MOBILE/TOUCH DEVICE SUPPORT (JS-based classes)
+   These styles only apply when JS adds .is-mobile or .is-touch classes
+   ============================================================================ */
+
+/* Touch device - larger tap targets */
+.workflow-builder.is-touch .toolbar-btn {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.workflow-builder.is-touch .btn {
+  min-height: 40px;
+  padding: 10px 16px;
+}
+
+/* Touch device - larger connection points */
+.workflow-builder.is-touch .drawflow .drawflow-node .input,
+.workflow-builder.is-touch .drawflow .drawflow-node .output {
+  width: 22px !important;
+  height: 22px !important;
+  border-width: 3px !important;
+}
+
+/* Touch device - disable hover effects */
+.workflow-builder.is-touch .node-item:hover {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.workflow-builder.is-touch .node-item:active {
+  background: var(--bg-body);
+  border-color: var(--primary);
+}
+
+/* Touch device - prevent text selection during drag */
+.workflow-builder.is-touch .workflow-canvas,
+.workflow-builder.is-touch .node-item,
+.workflow-builder.is-touch .drawflow-node {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Mobile device - compact header */
+.workflow-builder.is-mobile .workflow-header {
+  padding: 0 12px;
+  gap: 6px;
+}
+
+.workflow-builder.is-mobile .workflow-title h1 {
+  font-size: 14px;
+}
+
+.workflow-builder.is-mobile .workflow-icon {
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+}
+
+/* Mobile device - scrollable toolbar */
+.workflow-builder.is-mobile .canvas-toolbar {
+  padding: 6px 8px;
+  gap: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.workflow-builder.is-mobile .canvas-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile device - compact buttons */
+.workflow-builder.is-mobile .toolbar-btn {
+  width: 34px;
+  height: 34px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.workflow-builder.is-mobile .zoom-level {
+  min-width: 45px;
+  font-size: 12px;
+}
+
+/* Mobile device - touch friendly node sidebar items */
+.workflow-builder.is-mobile .node-item {
+  padding: 12px;
+  min-height: 48px;
+}
+
+/* Mobile device - larger footer */
+.workflow-builder.is-mobile .workflow-footer {
+  padding: 10px 12px;
+  font-size: 12px;
 }
 
 
@@ -1813,6 +1916,146 @@
   padding: 16px 20px;
   border-top: 1px solid var(--border);
   background: var(--bg-body);
+}
+
+/* Centered modal dialogs (confirm, generic) */
+#confirm-dialog,
+#generic-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+#confirm-dialog > .modal-overlay,
+#generic-modal > .modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+#confirm-dialog > .modal-content,
+#generic-modal > .modal-content {
+  position: relative;
+  background: var(--bg-white);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+
+/* ============================================================================
+   NODE ERROR TOOLTIP
+   ============================================================================ */
+
+.node-error-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 220px;
+  max-width: 320px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  z-index: 1000;
+  animation: errorTooltipIn 0.2s ease-out;
+}
+
+@keyframes errorTooltipIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.node-error-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: #FCA5A5;
+}
+
+.node-error-tooltip .error-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.node-error-tooltip .error-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.node-error-tooltip .error-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #DC2626;
+  margin-bottom: 4px;
+}
+
+.node-error-tooltip .error-message {
+  font-size: 12px;
+  color: #991B1B;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.node-error-tooltip .error-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #DC2626;
+  cursor: pointer;
+  padding: 0;
+  margin: -4px -4px 0 0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.node-error-tooltip .error-close:hover {
+  opacity: 1;
+}
+
+/* Error state on node itself */
+.drawflow-node.node-error .workflow-node {
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3) !important;
 }
 
 

@@ -4,7 +4,17 @@
  * 
  * This is a GENERIC system - you can define any configuration for nodes
  * and create custom executors for any behavior
+ * 
+ * SECURITY NOTE: 
+ * This module uses eval() and new Function() for JavaScript expression execution.
+ * This is intentional for full JavaScript support in workflow conditions.
+ * For production use with untrusted input, consider:
+ * - Using a sandboxed expression parser (e.g., expr-eval, mathjs)
+ * - Running in a Web Worker with restricted APIs
+ * - Validating/whitelisting allowed expressions
  */
+
+import { logger } from '../utils/logger.js';
 
 /**
  * Base Node Executor - All executors extend this
@@ -154,7 +164,7 @@ class TriggerExecutor extends BaseNodeExecutor {
           : config.initialData;
       }
     } catch (e) {
-      console.warn('Invalid initial data JSON:', e);
+      logger.warn('Invalid initial data JSON:', e);
     }
     
     return {
@@ -295,7 +305,7 @@ class ActionExecutor extends BaseNodeExecutor {
         : (config.http_headers || {});
       headers = this.interpolateObject(headers, context);
     } catch (e) {
-      console.warn('Invalid headers JSON:', e);
+      logger.warn('Invalid headers JSON:', e);
     }
     
     let body = null;
@@ -306,7 +316,7 @@ class ActionExecutor extends BaseNodeExecutor {
           : JSON.stringify(config.http_body);
         body = this.interpolate(body, context);
       } catch (e) {
-        console.warn('Invalid body:', e);
+        logger.warn('Invalid body:', e);
       }
     }
     
@@ -377,7 +387,7 @@ class ActionExecutor extends BaseNodeExecutor {
 
   static executeLog(config, context) {
     const message = this.interpolate(config.log_message || '', context);
-    console.log('[Workflow Log]:', message);
+    logger.log('[Workflow Log]:', message);
     
     return {
       output: 'output_1',
@@ -534,7 +544,7 @@ class ConditionExecutor extends BaseNodeExecutor {
           break;
       }
     } catch (error) {
-      console.error('Condition evaluation error:', error);
+      logger.error('Condition evaluation error:', error);
       result = false;
     }
     
@@ -587,7 +597,7 @@ class ConditionExecutor extends BaseNodeExecutor {
       // WARNING: This uses eval - in production, use a proper expression parser
       return Boolean(eval(interpolated));
     } catch (e) {
-      console.warn('Expression evaluation failed:', e);
+      logger.warn('Expression evaluation failed:', e);
       return false;
     }
   }
@@ -628,7 +638,7 @@ class ConditionExecutor extends BaseNodeExecutor {
       const fn = new Function('ctx', code);
       return Boolean(await fn(context));
     } catch (e) {
-      console.warn('JavaScript condition failed:', e);
+      logger.warn('JavaScript condition failed:', e);
       return false;
     }
   }
@@ -669,7 +679,7 @@ class LoopExecutor extends BaseNodeExecutor {
     // Support both 'source' and 'arrayPath' config fields
     let sourcePath = config.source || config.arrayPath || '{{lastResult}}';
     
-    console.log('[LoopExecutor] source path:', sourcePath, 'lastResult:', context.lastResult);
+    logger.debug('[LoopExecutor] source path:', sourcePath, 'lastResult:', context.lastResult);
     
     // If it's a plain path without {{}} template, treat it as a context path
     // e.g., 'data' becomes lookup of context.data or context.lastResult.data
@@ -685,7 +695,7 @@ class LoopExecutor extends BaseNodeExecutor {
     } else {
       // Template path - interpolate and parse
       const source = this.interpolate(sourcePath, context);
-      console.log('[LoopExecutor] interpolated source:', source, 'type:', typeof source);
+      logger.debug('[LoopExecutor] interpolated source:', source, 'type:', typeof source);
       try {
         items = typeof source === 'string' ? JSON.parse(source) : source;
       } catch (e) {
@@ -693,7 +703,7 @@ class LoopExecutor extends BaseNodeExecutor {
       }
     }
     
-    console.log('[LoopExecutor] items before object check:', items, 'isArray:', Array.isArray(items));
+    logger.debug('[LoopExecutor] items before object check:', items, 'isArray:', Array.isArray(items));
     
     // If items is an object with a 'data' property that's an array, use that
     if (items && typeof items === 'object' && !Array.isArray(items)) {
@@ -711,7 +721,7 @@ class LoopExecutor extends BaseNodeExecutor {
     // Ensure items is an array
     if (!Array.isArray(items)) items = items ? [items] : [];
     
-    console.log('[LoopExecutor] final items:', items.length, 'first:', items[0]);
+    logger.debug('[LoopExecutor] final items:', items.length, 'first:', items[0]);
     
     return {
       output: 'output_1',
@@ -765,7 +775,7 @@ class TransformExecutor extends BaseNodeExecutor {
   static async execute(node, config, context, signal) {
     const transformType = config.transformType || 'javascript';
     
-    console.log('[TransformExecutor] type:', transformType, 'lastResult:', context.lastResult);
+    logger.debug('[TransformExecutor] type:', transformType, 'lastResult:', context.lastResult);
     
     try {
       let result;
@@ -968,7 +978,7 @@ class EmailExecutor extends BaseNodeExecutor {
     const body = this.interpolate(config.body || '', context);
     
     // Simulate sending email (in real impl, use email service)
-    console.log('[Email]:', { to, cc, subject, bodyLength: body.length });
+    logger.debug('[Email]:', { to, cc, subject, bodyLength: body.length });
     
     return {
       output: 'output_1',
@@ -1363,7 +1373,7 @@ class SlackExecutor extends BaseNodeExecutor {
     };
     
     // Simulate Slack message (in real impl, POST to webhook)
-    console.log('[Slack]:', payload);
+    logger.debug('[Slack]:', payload);
     
     return {
       output: 'output_1',
@@ -1449,7 +1459,7 @@ class DatabaseExecutor extends BaseNodeExecutor {
     
     // Simulate database operation
     // In production, this would connect to actual database
-    console.log(`[Database] ${operation.toUpperCase()} on ${table || 'table'}:`, { query, data });
+    logger.debug(`[Database] ${operation.toUpperCase()} on ${table || 'table'}:`, { query, data });
     
     // Return simulated result based on operation
     const result = {
@@ -1590,7 +1600,7 @@ class FilterExecutor extends BaseNodeExecutor {
     // Default to lastResult.data since that's where actual data is stored
     let source = this.interpolate(config.source || '{{lastResult.data}}', context);
     
-    console.log('[FilterExecutor] raw source:', source, 'type:', typeof source);
+    logger.debug('[FilterExecutor] raw source:', source, 'type:', typeof source);
     
     try {
       if (typeof source === 'string') source = JSON.parse(source);
@@ -1599,7 +1609,7 @@ class FilterExecutor extends BaseNodeExecutor {
       source = [source];
     }
     
-    console.log('[FilterExecutor] parsed source length:', source.length);
+    logger.debug('[FilterExecutor] parsed source length:', source.length);
     
     let filtered;
     

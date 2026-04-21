@@ -118,6 +118,11 @@ export {
 };
 
 /**
+ * Export security utilities
+ */
+export { escapeHtml, sanitizeAttribute, safeJsonParse } from './utils/sanitizer.js';
+
+/**
  * Helper function to create a node definition
  * 
  * @param {Object} config - Node configuration
