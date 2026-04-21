@@ -1,6 +1,6 @@
 {
   "name": "vizflow",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "VizFlow - A powerful visual workflow builder with 80+ nodes, API testing, and full execution engine. Build, test, and export automation workflows.",
   "main": "dist/vizflow.umd.js",
   "module": "dist/vizflow.es.js",
