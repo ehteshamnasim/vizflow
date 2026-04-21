@@ -15,7 +15,8 @@
   },
   "files": [
     "dist",
-    "src/index.d.ts"
+    "src/index.d.ts",
+    "README.md"
   ],
   "scripts": {
     "dev": "vite",
