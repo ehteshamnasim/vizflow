@@ -46,6 +46,9 @@ export interface WorkflowBuilderOptions {
   
   /** Show arrow markers on edges */
   showArrows?: boolean;
+  
+  /** Connection direction: 'horizontal' (left-to-right) or 'vertical' (top-to-bottom) */
+  direction?: 'horizontal' | 'vertical';
 }
 
 export interface NodeDefinition {
@@ -72,6 +75,12 @@ export interface NodeDefinition {
   
   /** If true, shows only icon (no label) - 79x79px box */
   iconOnly?: boolean;
+  
+  /** Custom HTML template string with {{variable}} interpolation */
+  template?: string;
+  
+  /** Custom render function for full control over node HTML */
+  render?: (data: Record<string, any>, definition: NodeDefinition) => string;
 }
 
 export interface NodeField {

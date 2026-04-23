@@ -69,7 +69,7 @@ export class WorkflowBuilder {
     this.options = {
       theme: 'light',
       mode: 'edit',  // 'edit' or 'view'
-      nodes: ['trigger', 'action', 'condition', 'email', 'api', 'delay', 'end'],
+      nodes: ['trigger', 'action', 'condition', 'email', 'api', 'api_data', 'delay', 'end'],
       onSave: null,
       onChange: null,
       customNodes: {},
@@ -81,6 +81,7 @@ export class WorkflowBuilder {
       gridSize: 20,            // Grid size for snapping
       animatedEdges: false,    // Animate edges with flowing dots
       showArrows: true,        // Show arrow markers on edges
+      direction: 'horizontal', // 'horizontal' (left-to-right) | 'vertical' (top-to-bottom)
       ...options
     };
 
@@ -183,6 +184,7 @@ export class WorkflowBuilder {
     this.container.classList.add(`theme-${this.options.theme}`);
     this.container.classList.add(`mode-${this.options.mode}`);
     this.container.classList.add(`bg-${this.options.background}`);
+    this.container.classList.add(`direction-${this.options.direction}`);
   }
 
 
@@ -891,7 +893,7 @@ export class WorkflowBuilder {
    * 
    * --------------------------------------------------------------------------
    */
-  _createNodeTemplate(name, definition) {
+  _createNodeTemplate(name, definition, data = {}) {
     // If no definition, create a basic fallback node
     if (!definition) {
       console.warn(`[FlowKit] No definition found for node type: ${name}`);
@@ -903,6 +905,26 @@ export class WorkflowBuilder {
           </div>
         </div>
       `;
+    }
+    
+    // Custom render function - full control over HTML
+    if (typeof definition.render === 'function') {
+      return definition.render(data, definition);
+    }
+    
+    // Custom template string with {{variable}} interpolation
+    if (definition.template) {
+      let html = definition.template;
+      // Replace {{label}}, {{icon}}, {{description}}, and any data fields
+      html = html.replace(/\{\{label\}\}/g, definition.label || name);
+      html = html.replace(/\{\{icon\}\}/g, definition.icon || '');
+      html = html.replace(/\{\{description\}\}/g, definition.description || '');
+      html = html.replace(/\{\{name\}\}/g, name);
+      // Replace data fields
+      Object.entries(data).forEach(([key, value]) => {
+        html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value || '');
+      });
+      return html;
     }
     
     // Icon-only mode: just show a large icon (for shape nodes like circle, star, etc.)

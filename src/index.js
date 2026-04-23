@@ -30,7 +30,8 @@ import {
   LoopExecutor,
   TransformExecutor,
   EndExecutor,
-  GenericExecutor
+  GenericExecutor,
+  ApiDataExecutor
 } from './core/NodeExecutors.js';
 import { defaultNodeTypes, icons } from './nodes/defaultNodes.js';
 
@@ -88,7 +89,8 @@ export {
   LoopExecutor,
   TransformExecutor,
   EndExecutor,
-  GenericExecutor
+  GenericExecutor,
+  ApiDataExecutor
 };
 
 /**

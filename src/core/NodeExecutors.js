@@ -1755,6 +1755,196 @@ class WebhookExecutor extends BaseNodeExecutor {
 }
 
 /**
+ * API Data Node Executor
+ * Fetches data from API and stores in localStorage with visual preview in node
+ */
+class ApiDataExecutor extends BaseNodeExecutor {
+  static getConfigSchema() {
+    return [
+      {
+        key: 'url',
+        label: 'API URL',
+        type: 'text',
+        placeholder: 'https://api.example.com/data'
+      },
+      {
+        key: 'method',
+        label: 'HTTP Method',
+        type: 'select',
+        options: ['GET', 'POST'],
+        default: 'GET'
+      },
+      {
+        key: 'headers',
+        label: 'Headers (JSON)',
+        type: 'json',
+        default: '{"Content-Type": "application/json"}'
+      },
+      {
+        key: 'body',
+        label: 'Request Body (JSON)',
+        type: 'json',
+        default: '{}'
+      },
+      {
+        key: 'storageKey',
+        label: 'LocalStorage Key',
+        type: 'text',
+        default: 'api_data',
+        placeholder: 'unique_storage_key'
+      },
+      {
+        key: 'autoFetch',
+        label: 'Auto-fetch on load',
+        type: 'checkbox',
+        default: false
+      },
+      {
+        key: 'showPreview',
+        label: 'Show data preview in node',
+        type: 'checkbox',
+        default: true
+      },
+      {
+        key: 'previewMaxLength',
+        label: 'Preview max characters',
+        type: 'number',
+        default: 200
+      }
+    ];
+  }
+
+  static async execute(node, config, context, signal) {
+    const url = this.interpolate(config.url || '', context);
+    const storageKey = config.storageKey || `api_data_${node.id}`;
+    
+    if (!url) {
+      return { 
+        output: 'output_2', 
+        error: 'API URL is required', 
+        ok: false,
+        storageKey 
+      };
+    }
+    
+    const method = config.method || 'GET';
+    
+    let headers = {};
+    try {
+      headers = typeof config.headers === 'string' 
+        ? JSON.parse(config.headers) 
+        : (config.headers || {});
+      headers = this.interpolateObject(headers, context);
+    } catch (e) {}
+    
+    let body = null;
+    if (method === 'POST') {
+      try {
+        body = typeof config.body === 'string' ? config.body : JSON.stringify(config.body);
+        body = this.interpolate(body, context);
+      } catch (e) {}
+    }
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      if (signal) {
+        signal.addEventListener('abort', () => controller.abort());
+      }
+      
+      const response = await fetch(url, { 
+        method, 
+        headers, 
+        body,
+        signal: controller.signal 
+      });
+      clearTimeout(timeoutId);
+      
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = await response.text();
+      }
+      
+      // Store in localStorage
+      const storageData = {
+        data,
+        fetchedAt: new Date().toISOString(),
+        url,
+        status: response.status
+      };
+      
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(storageData));
+      } catch (e) {
+        console.warn('[ApiData] Failed to save to localStorage:', e.message);
+      }
+      
+      return {
+        output: response.ok ? 'output_1' : 'output_2',
+        data,
+        storageKey,
+        status: response.status,
+        ok: response.ok,
+        cached: false,
+        fetchedAt: storageData.fetchedAt
+      };
+    } catch (error) {
+      // Try to return cached data if available
+      try {
+        const cached = localStorage.getItem(storageKey);
+        if (cached) {
+          const cachedData = JSON.parse(cached);
+          return {
+            output: 'output_1',
+            data: cachedData.data,
+            storageKey,
+            cached: true,
+            cachedAt: cachedData.fetchedAt,
+            error: error.message
+          };
+        }
+      } catch (e) {}
+      
+      return { 
+        output: 'output_2', 
+        error: error.message, 
+        ok: false,
+        storageKey 
+      };
+    }
+  }
+  
+  /**
+   * Get stored data from localStorage
+   */
+  static getStoredData(storageKey) {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {}
+    return null;
+  }
+  
+  /**
+   * Clear stored data
+   */
+  static clearStoredData(storageKey) {
+    try {
+      localStorage.removeItem(storageKey);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
+/**
  * Node Executor Registry
  * Maps node types to their executors
  */
@@ -1780,6 +1970,7 @@ export class NodeExecutorRegistry {
     // HTTP/API nodes
     'http': HttpExecutor,
     'api': ApiExecutor,
+    'api_data': ApiDataExecutor,
     'webhook': WebhookExecutor,
     
     // Database nodes
@@ -1899,5 +2090,6 @@ export {
   LoopExecutor,
   TransformExecutor,
   EndExecutor,
-  GenericExecutor
+  GenericExecutor,
+  ApiDataExecutor
 };

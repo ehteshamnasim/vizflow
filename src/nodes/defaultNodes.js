@@ -133,6 +133,39 @@ export const defaultNodeTypes = {
   webhook: { label: 'Webhook', icon: icons.webhook, color: '#6366F1', inputs: 1, outputs: 1, fields: [{ name: 'url', label: 'URL', type: 'text', default: '' }] },
   api: { label: 'API', icon: icons.api, color: '#8B5CF6', inputs: 1, outputs: 1, fields: [{ name: 'endpoint', label: 'Endpoint', type: 'text', default: '' }] },
   
+  // API Data node - fetches data and stores in localStorage with visual preview
+  api_data: { 
+    label: 'API Data', 
+    icon: icons.database, 
+    color: '#10B981', 
+    inputs: 1, 
+    outputs: 1, 
+    fields: [
+      { name: 'url', label: 'API URL', type: 'text', default: '', placeholder: 'https://api.example.com/data' },
+      { name: 'method', label: 'Method', type: 'select', default: 'GET', options: [{ value: 'GET', label: 'GET' }, { value: 'POST', label: 'POST' }] },
+      { name: 'storageKey', label: 'Storage Key', type: 'text', default: 'api_data', placeholder: 'unique_key' },
+      { name: 'autoFetch', label: 'Auto-fetch on load', type: 'checkbox', default: false }
+    ],
+    // Custom template with data preview
+    template: `
+      <div class="workflow-node api-data-node wide">
+        <div class="node-header">
+          <span class="node-icon">${icons.database}</span>
+          <span class="node-label">API Data</span>
+        </div>
+        <div class="node-body">
+          <div class="api-status">
+            <span class="api-status-dot"></span>
+            <span class="api-status-text">Ready</span>
+          </div>
+        </div>
+        <div class="node-data-preview">
+          <pre class="data-content"><span class="data-empty">No data loaded</span></pre>
+        </div>
+      </div>
+    `
+  },
+  
   // Communication nodes
   email: { label: 'Email', icon: icons.email, color: '#E91E63', inputs: 1, outputs: 1, fields: [{ name: 'to', label: 'To', type: 'text', default: '' }] },
   slack: { label: 'Slack', icon: icons.slack, color: '#4A154B', inputs: 1, outputs: 1, fields: [{ name: 'channel', label: 'Channel', type: 'text', default: '#general' }] },
