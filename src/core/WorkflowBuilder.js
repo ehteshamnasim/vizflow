@@ -1197,6 +1197,7 @@ export class WorkflowBuilder {
         
         drawflowEl.addEventListener('drop', (event) => {
           event.preventDefault();
+          event.stopPropagation(); // Prevent duplicate node creation from parent handler
           
           const nodeType = event.dataTransfer.getData('nodeType');
           if (!nodeType) return;
